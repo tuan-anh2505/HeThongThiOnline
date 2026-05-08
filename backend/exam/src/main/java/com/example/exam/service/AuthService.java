@@ -1,13 +1,19 @@
 package com.example.exam.service;
 
-import com.example.exam.dto.*;
+import java.time.LocalDateTime;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import com.example.exam.dto.AuthResponse;
+import com.example.exam.dto.LoginRequest;
+import com.example.exam.dto.RegisterRequest;
 import com.example.exam.entity.TaiKhoan;
 import com.example.exam.repository.TaiKhoanRepository;
 import com.example.exam.security.JwtUtil;
+
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -17,6 +23,7 @@ public class AuthService {
     private final JwtUtil jwtUtil;
 
     public AuthResponse register(RegisterRequest request) {
+        @NonNull
         TaiKhoan taikhoan = TaiKhoan.builder()
                 .tenDangNhap(request.getTenDangNhap())
                 .matKhau(passwordEncoder.encode(request.getMatKhau()))

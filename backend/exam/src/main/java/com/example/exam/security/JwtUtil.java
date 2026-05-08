@@ -1,16 +1,18 @@
 package com.example.exam.security;
 
-import io.jsonwebtoken.*;
-import io.jsonwebtoken.security.Keys;
-import org.springframework.stereotype.Component;
-
 import java.security.Key;
 import java.util.Date;
+
+import org.springframework.stereotype.Component;
+
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 
 @Component
 public class JwtUtil {
 
-    private final String SECRET = "hjdsauh2321hjb3b12v3hgj1b2h3hh2";
+    private final String SECRET = "hjdsauh2321hjb3b12v3hgj1b2h3hh2fsdaDaawsdfasf1b2h3hh2fsdaDaawerqwe";
 
     private final long EXPIRATION = 86400000;
 
