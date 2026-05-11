@@ -51,8 +51,7 @@ public class JwtUtil {
 
             return true;
 
-        } catch (Exception e) {
-
+        } catch (io.jsonwebtoken.JwtException | IllegalArgumentException e) {
             return false;
         }
     }
