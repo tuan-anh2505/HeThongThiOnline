@@ -9,6 +9,7 @@ import com.example.exam.entity.Lop;
 import com.example.exam.entity.SinhVien;
 import com.example.exam.entity.SinhVienLop;
 import com.example.exam.entity.TaiKhoan;
+import com.example.exam.entity.CaThi;
 import com.example.exam.repository.BaiLamRepository;
 import com.example.exam.repository.BaiThiRepository;
 import com.example.exam.repository.LopRepository;
@@ -16,6 +17,8 @@ import com.example.exam.repository.SinhVienRepository;
 import com.example.exam.repository.SinhVienLopRepository;
 import com.example.exam.repository.MonThiRepository;
 import com.example.exam.repository.TaiKhoanRepository;
+import com.example.exam.repository.CaThiRepository;
+import com.example.exam.util.ExamDeadlineUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -33,6 +36,8 @@ public class DashboardService {
     private final BaiLamRepository baiLamRepository;
     private final MonThiRepository monThiRepository;
     private final TaiKhoanRepository taiKhoanRepository;
+    private final CaThiRepository caThiRepository;
+    private final ExamDeadlineUtil deadlineUtil;
 
     public List<String> getStudentClasses(Integer maSinhVien) {
         List<SinhVienLop> sinhVienLops = sinhVienLopRepository.findByMaSinhVien(maSinhVien);
@@ -119,13 +124,17 @@ public class DashboardService {
 
         Integer soSinhVien = baiLamRepository.findByMaBaiThi(baiThi.getMaBaiThi()).size();
 
+        // Check exam deadline
+        CaThi caThi = caThiRepository.findById(baiThi.getMaCaThi()).orElse(null);
+        Boolean conHan = caThi != null ? deadlineUtil.isExamStillValid(caThi) : true;
+
         return ExamResponse.builder()
                 .maBaiThi(baiThi.getMaBaiThi())
                 .tenBaiThi(baiThi.getTenBaiThi())
                 .thoiLuong(baiThi.getThoiLuong())
                 .ngayTao(baiThi.getNgayTao())
                 .soSinhVien(soSinhVien)
-                .conHan(true) // TODO: Implement time check logic
+                .conHan(conHan) // Now using actual deadline check
                 .tenMonThi(monThiName)
                 .tenLop(lopName)
                 .build();

@@ -4,6 +4,7 @@ import com.example.exam.dto.DashboardResponse;
 import com.example.exam.dto.ExamResponse;
 import com.example.exam.service.DashboardService;
 import com.example.exam.service.SinhVienService;
+import com.example.exam.security.TokenUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,11 +19,12 @@ public class DashboardController {
 
     private final DashboardService dashboardService;
     private final SinhVienService sinhVienService;
+    private final TokenUtil tokenUtil;
 
     @GetMapping("/student")
     public ResponseEntity<DashboardResponse> getStudentDashboard(@RequestHeader("Authorization") String token) {
         try {
-            String username = extractUsernameFromToken(token);
+            String username = tokenUtil.extractUsernameFromAuthHeader(token);
             Integer maSinhVien = sinhVienService.getSinhVienByUsername(username).getMaSinhVien();
 
             List<String> classes = dashboardService.getStudentClasses(maSinhVien);
@@ -47,14 +49,14 @@ public class DashboardController {
                     .selectedClass(selectedClass)
                     .build());
         } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(null);
         }
     }
 
     @GetMapping("/teacher")
     public ResponseEntity<DashboardResponse> getTeacherDashboard(@RequestHeader("Authorization") String token) {
         try {
-            String username = extractUsernameFromToken(token);
+            String username = tokenUtil.extractUsernameFromAuthHeader(token);
             Integer maGiangVien = sinhVienService.getGiangVienByUsername(username).getMaGiangVien();
 
             List<ExamResponse> allExams = dashboardService.getTeacherExams(maGiangVien);
@@ -72,17 +74,12 @@ public class DashboardController {
                     .examsExpired(examsExpired)
                     .build());
         } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.badRequest().body(null);
         }
     }
 
     @GetMapping("/exams-by-class/{maLop}")
     public ResponseEntity<List<ExamResponse>> getExamsByClass(@PathVariable Integer maLop) {
         return ResponseEntity.ok(dashboardService.getExamsForClass(maLop));
-    }
-
-    private String extractUsernameFromToken(String token) {
-        // TODO: Implement token extraction using JwtUtil
-        return token.replace("Bearer ", "");
     }
 }
