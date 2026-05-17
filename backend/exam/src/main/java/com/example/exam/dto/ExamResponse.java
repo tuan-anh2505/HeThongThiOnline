@@ -1,5 +1,6 @@
 package com.example.exam.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import lombok.AllArgsConstructor;
@@ -18,6 +19,8 @@ public class ExamResponse {
     private LocalDateTime ngayTao;
     private Integer soSinhVien;
     private Boolean conHan;
+    private Boolean daNop;
+    private BigDecimal diem;
     private String tenMonThi;
     private String tenLop;
 }

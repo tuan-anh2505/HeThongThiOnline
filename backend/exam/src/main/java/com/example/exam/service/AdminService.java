@@ -1,16 +1,18 @@
 package com.example.exam.service;
 
-import com.example.exam.dto.AdminUserResponse;
-import com.example.exam.entity.TaiKhoan;
-import com.example.exam.repository.TaiKhoanRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import com.example.exam.dto.AdminUserResponse;
+import com.example.exam.entity.TaiKhoan;
+import com.example.exam.repository.TaiKhoanRepository;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -18,6 +20,7 @@ public class AdminService {
 
     private final TaiKhoanRepository taiKhoanRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AccountProfileService accountProfileService;
 
     public List<AdminUserResponse> getAllUsers() {
         return taiKhoanRepository.findAll().stream()
@@ -32,15 +35,18 @@ public class AdminService {
 
     public TaiKhoan createUser(TaiKhoan taiKhoan) {
         if (taiKhoanRepository.existsByTenDangNhap(taiKhoan.getTenDangNhap())) {
-            throw new RuntimeException("Tên đăng nhập đã tồn tại");
+            throw new RuntimeException("Ten dang nhap da ton tai");
         }
-        if (taiKhoanRepository.existsByEmail(taiKhoan.getEmail())) {
-            throw new RuntimeException("Email đã tồn tại");
+        if (taiKhoan.getEmail() != null && !taiKhoan.getEmail().isBlank()
+                && taiKhoanRepository.existsByEmail(taiKhoan.getEmail())) {
+            throw new RuntimeException("Email da ton tai");
         }
 
         taiKhoan.setMatKhau(passwordEncoder.encode(taiKhoan.getMatKhau()));
         taiKhoan.setNgayTao(LocalDateTime.now());
-        return taiKhoanRepository.save(taiKhoan);
+        TaiKhoan saved = taiKhoanRepository.save(taiKhoan);
+        accountProfileService.createProfileForAccount(saved);
+        return saved;
     }
 
     public TaiKhoan updateUser(Integer maTaiKhoan, TaiKhoan taiKhoan) {
@@ -61,7 +67,7 @@ public class AdminService {
                 user.setMatKhau(passwordEncoder.encode(taiKhoan.getMatKhau()));
             }
             return taiKhoanRepository.save(user);
-        }).orElseThrow(() -> new RuntimeException("Tài khoản không tồn tại"));
+        }).orElseThrow(() -> new RuntimeException("Tai khoan khong ton tai"));
     }
 
     public void deleteUser(Integer maTaiKhoan) {

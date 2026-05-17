@@ -4,6 +4,7 @@ import com.example.exam.entity.SinhVien;
 import com.example.exam.entity.GiangVien;
 import com.example.exam.repository.SinhVienRepository;
 import com.example.exam.repository.GiangVienRepository;
+import com.example.exam.repository.LopRepository;
 import com.example.exam.repository.TaiKhoanRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ public class SinhVienService {
 
     private final SinhVienRepository sinhVienRepository;
     private final GiangVienRepository giangVienRepository;
+    private final LopRepository lopRepository;
     private final TaiKhoanRepository taiKhoanRepository;
 
     public SinhVien getSinhVienByUsername(String username) {
@@ -31,8 +33,9 @@ public class SinhVienService {
     }
 
     public Integer getLopIdFromTenLop(String tenLop) {
-        // TODO: Implement logic to get class ID from class name
-        return 1;
+        return lopRepository.findByTenLop(tenLop)
+                .map(lop -> lop.getMaLop())
+                .orElseThrow(() -> new RuntimeException("Lop khong ton tai"));
     }
 
     public SinhVien createStudent(SinhVien sinhVien) {

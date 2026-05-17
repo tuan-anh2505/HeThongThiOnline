@@ -48,11 +48,21 @@ public class DashboardService {
 
     public List<ExamResponse> getExamsForClass(Integer maLop) {
         List<BaiThi> baiThis = baiThiRepository.findAll().stream()
-                .filter(exam -> exam.getMaLop().equals(maLop))
+                .filter(exam -> maLop.equals(exam.getMaLop()))
                 .toList();
 
         return baiThis.stream()
                 .map(this::convertToExamResponse)
+                .collect(Collectors.toList());
+    }
+
+    public List<ExamResponse> getStudentExamsForClass(Integer maSinhVien, Integer maLop) {
+        List<BaiThi> baiThis = baiThiRepository.findAll().stream()
+                .filter(exam -> maLop.equals(exam.getMaLop()))
+                .toList();
+
+        return baiThis.stream()
+                .map(baiThi -> convertToExamResponse(baiThi, maSinhVien))
                 .collect(Collectors.toList());
     }
 
@@ -126,7 +136,7 @@ public class DashboardService {
 
         // Check exam deadline
         CaThi caThi = caThiRepository.findById(baiThi.getMaCaThi()).orElse(null);
-        Boolean conHan = caThi != null ? deadlineUtil.isExamStillValid(caThi) : true;
+        Boolean conHan = caThi != null ? deadlineUtil.canTakeExam(caThi) : true;
 
         return ExamResponse.builder()
                 .maBaiThi(baiThi.getMaBaiThi())
@@ -134,9 +144,19 @@ public class DashboardService {
                 .thoiLuong(baiThi.getThoiLuong())
                 .ngayTao(baiThi.getNgayTao())
                 .soSinhVien(soSinhVien)
-                .conHan(conHan) // Now using actual deadline check
+                .conHan(conHan)
                 .tenMonThi(monThiName)
                 .tenLop(lopName)
                 .build();
+    }
+
+    private ExamResponse convertToExamResponse(BaiThi baiThi, Integer maSinhVien) {
+        ExamResponse response = convertToExamResponse(baiThi);
+        baiLamRepository.findByMaBaiThiAndMaSinhVien(baiThi.getMaBaiThi(), maSinhVien)
+                .ifPresentOrElse(baiLam -> {
+                    response.setDaNop(baiLam.getThoiGianNop() != null);
+                    response.setDiem(baiLam.getDiemTong());
+                }, () -> response.setDaNop(false));
+        return response;
     }
 }

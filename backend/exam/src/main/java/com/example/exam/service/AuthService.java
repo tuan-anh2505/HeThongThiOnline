@@ -17,56 +17,106 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class AuthService {
+
+    private static final byte ROLE_GIANG_VIEN = 1;
+    private static final byte ROLE_SINH_VIEN = 2;
+
     private final TaiKhoanRepository repository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final AccountProfileService accountProfileService;
+    private final LoggingService loggingService;
 
     public AuthResponse register(RegisterRequest request) {
         if (repository.existsByTenDangNhap(request.getTenDangNhap())) {
-            throw new RuntimeException("Tên đăng nhập đã tồn tại");
+            throw new RuntimeException("Ten dang nhap da ton tai");
         }
 
-        TaiKhoan taikhoan = TaiKhoan.builder()
+        if (request.getEmail() != null && !request.getEmail().isBlank()
+                && repository.existsByEmail(request.getEmail())) {
+            throw new RuntimeException("Email da ton tai");
+        }
+
+        Byte vaiTro = resolveRegisterRole(request.getVaiTro());
+
+        TaiKhoan taiKhoan = TaiKhoan.builder()
                 .tenDangNhap(request.getTenDangNhap())
                 .matKhau(passwordEncoder.encode(request.getMatKhau()))
                 .hoTen(request.getHoTen())
                 .email(request.getEmail())
                 .soDienThoai(request.getSoDienThoai())
-                .vaiTro((byte) 0)
+                .vaiTro(vaiTro)
                 .ngayTao(LocalDateTime.now())
                 .build();
 
-        repository.save(taikhoan);
+        repository.save(taiKhoan);
+        accountProfileService.createProfileForAccount(
+                taiKhoan,
+                request.getMaSoSinhVien(),
+                request.getNgaySinh(),
+                request.getBoMon());
 
-        String token = jwtUtil.generateToken(taikhoan.getTenDangNhap());
+        String token = jwtUtil.generateToken(taiKhoan.getTenDangNhap());
 
         return new AuthResponse(
-            token,
-            "Đăng ký thành công",
-            taikhoan.getMaTaiKhoan(),
-            taikhoan.getHoTen(),
-            (int) taikhoan.getVaiTro(),
-            taikhoan.getTenDangNhap()
-        );
+                token,
+                "Dang ky thanh cong",
+                taiKhoan.getMaTaiKhoan(),
+                taiKhoan.getHoTen(),
+                (int) taiKhoan.getVaiTro(),
+                taiKhoan.getTenDangNhap());
     }
 
     public AuthResponse login(LoginRequest request) {
-        TaiKhoan taikhoan = repository.findByTenDangNhap(request.getTenDangNhap())
-                .orElseThrow(() -> new RuntimeException("Tài khoản không tồn tại"));
+        TaiKhoan taiKhoan = repository.findByTenDangNhap(request.getTenDangNhap())
+                .orElseThrow(() -> new RuntimeException("Tai khoan khong ton tai"));
 
-        if (!passwordEncoder.matches(request.getMatKhau(), taikhoan.getMatKhau())) {
-            throw new RuntimeException("Tài khoản hoặc mật khẩu không đúng");
+        if (!passwordEncoder.matches(request.getMatKhau(), taiKhoan.getMatKhau())) {
+            throw new RuntimeException("Tai khoan hoac mat khau khong dung");
         }
 
-        String token = jwtUtil.generateToken(taikhoan.getTenDangNhap());
+        String token = jwtUtil.generateToken(taiKhoan.getTenDangNhap());
 
         return new AuthResponse(
-            token,
-            "Đăng nhập thành công",
-            taikhoan.getMaTaiKhoan(),
-            taikhoan.getHoTen(),
-            (int) taikhoan.getVaiTro(),
-            taikhoan.getTenDangNhap()
-        );
+                token,
+                "Dang nhap thanh cong",
+                taiKhoan.getMaTaiKhoan(),
+                taiKhoan.getHoTen(),
+                (int) taiKhoan.getVaiTro(),
+                taiKhoan.getTenDangNhap());
+    }
+
+    public String logout(String authorizationHeader, Integer maTaiKhoan, String ipAddress) {
+        Integer resolvedId = maTaiKhoan != null ? maTaiKhoan : resolveAccountIdFromToken(authorizationHeader);
+        if (resolvedId != null) {
+            loggingService.logLogout(resolvedId, ipAddress != null ? ipAddress : "");
+        }
+        return "Dang xuat thanh cong";
+    }
+
+    private Byte resolveRegisterRole(Byte vaiTro) {
+        if (vaiTro == null) {
+            return ROLE_SINH_VIEN;
+        }
+        if (vaiTro != ROLE_GIANG_VIEN && vaiTro != ROLE_SINH_VIEN) {
+            throw new RuntimeException("Chi duoc dang ky vai tro 1 (giang vien) hoac 2 (sinh vien)");
+        }
+        return vaiTro;
+    }
+
+    private Integer resolveAccountIdFromToken(String authorizationHeader) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+            return null;
+        }
+
+        String token = authorizationHeader.substring(7);
+        if (!jwtUtil.validateToken(token)) {
+            return null;
+        }
+
+        String username = jwtUtil.extractUsername(token);
+        return repository.findByTenDangNhap(username)
+                .map(TaiKhoan::getMaTaiKhoan)
+                .orElse(null);
     }
 }

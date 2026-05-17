@@ -31,7 +31,8 @@ public class DashboardController {
             String selectedClass = classes.isEmpty() ? null : classes.get(0);
 
             List<ExamResponse> allExams = classes.isEmpty() ? List.of()
-                    : dashboardService.getExamsForClass(
+                    : dashboardService.getStudentExamsForClass(
+                            maSinhVien,
                             sinhVienService.getLopIdFromTenLop(selectedClass));
 
             List<ExamResponse> examsValid = allExams.stream()
@@ -81,5 +82,34 @@ public class DashboardController {
     @GetMapping("/exams-by-class/{maLop}")
     public ResponseEntity<List<ExamResponse>> getExamsByClass(@PathVariable Integer maLop) {
         return ResponseEntity.ok(dashboardService.getExamsForClass(maLop));
+    }
+
+    @GetMapping("/student/exams-by-class-name/{tenLop}")
+    public ResponseEntity<DashboardResponse> getStudentExamsByClassName(
+            @PathVariable String tenLop,
+            @RequestHeader("Authorization") String token) {
+        try {
+            String username = tokenUtil.extractUsernameFromAuthHeader(token);
+            Integer maSinhVien = sinhVienService.getSinhVienByUsername(username).getMaSinhVien();
+            Integer maLop = sinhVienService.getLopIdFromTenLop(tenLop);
+
+            List<ExamResponse> allExams = dashboardService.getStudentExamsForClass(maSinhVien, maLop);
+
+            List<ExamResponse> examsValid = allExams.stream()
+                    .filter(exam -> exam.getConHan() != null && exam.getConHan())
+                    .toList();
+
+            List<ExamResponse> examsExpired = allExams.stream()
+                    .filter(exam -> exam.getConHan() == null || !exam.getConHan())
+                    .toList();
+
+            return ResponseEntity.ok(DashboardResponse.builder()
+                    .examsValid(examsValid)
+                    .examsExpired(examsExpired)
+                    .selectedClass(tenLop)
+                    .build());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(null);
+        }
     }
 }

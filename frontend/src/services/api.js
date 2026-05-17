@@ -62,7 +62,19 @@ export async function login(tenDangNhap, matKhau) {
   return data;
 }
 
-export function logout() {
+export async function register(data) {
+  return post("/auth/register", data);
+}
+
+export async function logout() {
+  try {
+    await post("/auth/logout");
+  } finally {
+    localStorage.clear();
+  }
+}
+
+export function clearSession() {
   localStorage.clear();
 }
 

@@ -3,7 +3,7 @@
 // ============================================================
 import { useState, useEffect } from "react";
 import { isLoggedIn, checkAndLogout } from "./utils/auth";
-import { getVaiTro, getHoTen } from "./services/api";
+import { getVaiTro, getHoTen, logout as logoutApi } from "./services/api";
 
 import LoginPage     from "./pages/LoginPage";
 import StudentPage   from "./pages/StudentPage";
@@ -38,7 +38,14 @@ export default function App() {
   }
 
   function handleLogin()   { redirectByRole(); }
-  function handleLogout()  { localStorage.clear(); setPage("login"); setPayload(null); }
+  async function handleLogout()  {
+    try {
+      await logoutApi();
+    } finally {
+      setPage("login");
+      setPayload(null);
+    }
+  }
   function goExam(bt)      { setPayload(bt); setPage("exam"); }
   function goAnalytics(bt) { setPayload(bt); setPage("analytics"); }
   function goBack()        { setPayload(null); redirectByRole(); }
