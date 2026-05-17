@@ -1,0 +1,10 @@
+{
+  "name": "hethong-thi-online-backend",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "cd exam && .\\mvnw.cmd spring-boot:run",
+    "build": "cd exam && .\\mvnw.cmd -DskipTests package",
+    "test": "cd exam && .\\mvnw.cmd test"
+  }
+}

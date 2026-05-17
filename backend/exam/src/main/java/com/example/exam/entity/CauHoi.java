@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Entity
 @Table(name = "CauHoi")
@@ -30,4 +31,16 @@ public class CauHoi {
 
     @Column(name = "Diem")
     private BigDecimal diem;
+
+    @Transient
+    private List<DapAnTracNghiem> dapAnTracNghiem;
+
+    @Transient
+    private DapAnDungSai dapAnDungSai;
+
+    @Transient
+    private List<DapAnGhepTu> dapAnGhepTu;
+
+    @Transient
+    private List<DapAnDienChoTrong> dapAnDienChoTrong;
 }
