@@ -40,7 +40,14 @@ public class AuthService {
 
         String token = jwtUtil.generateToken(taikhoan.getTenDangNhap());
 
-        return new AuthResponse(token, "Đăng ký thành công");
+        return new AuthResponse(
+            token,
+            "Đăng ký thành công",
+            taikhoan.getMaTaiKhoan(),
+            taikhoan.getHoTen(),
+            (int) taikhoan.getVaiTro(),
+            taikhoan.getTenDangNhap()
+        );
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -53,6 +60,13 @@ public class AuthService {
 
         String token = jwtUtil.generateToken(taikhoan.getTenDangNhap());
 
-        return new AuthResponse(token, "Đăng nhập thành công");
+        return new AuthResponse(
+            token,
+            "Đăng nhập thành công",
+            taikhoan.getMaTaiKhoan(),
+            taikhoan.getHoTen(),
+            (int) taikhoan.getVaiTro(),
+            taikhoan.getTenDangNhap()
+        );
     }
 }
