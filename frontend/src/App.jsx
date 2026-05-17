@@ -57,8 +57,7 @@ export default function App() {
 
   return (
     <div>
-      {/* Nút đăng xuất nổi — hiện ở mọi trang trừ Login và ExamPage */}
-      {loggedIn && page !== "exam" && (
+      {loggedIn && page !== "exam" && page !== "student" && page !== "teacher" && page !== "admin" && (
         <LogoutButton
           onLogout={handleLogout}
           hoTen={hoTen}

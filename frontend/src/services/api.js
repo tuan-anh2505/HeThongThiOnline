@@ -119,15 +119,15 @@ export const deleteBaiThi = (id) => del(`/baithi/${id}`);
 
 /** POST /api/exam-taking/start/:maBaiThi/:maSinhVien → { maBaiLam } */
 export const startExam = (maBaiThi) =>
-  post(`/exam-taking/start/${maBaiThi}/${getMaTaiKhoan()}`);
+  post(`/exam-taking/start/${maBaiThi}`);  // dùng token, backend tự xác định
 
 /** GET /api/exam-taking/questions/:maBaiThi → CauHoi[] */
 export const getQuestions = (maBaiThi) =>
   get(`/exam-taking/questions/${maBaiThi}`);
 
 /** POST /api/exam-taking/submit/:maBaiLam?diem=X */
-export const submitExam = (maBaiLam, diem) =>
-  post(`/exam-taking/submit/${maBaiLam}?diem=${diem}`);
+export const submitExam = (maBaiLam, answers) =>
+  post(`/exam-taking/submit/${maBaiLam}`, { answers });  // gửi đáp án, backend tự chấm
 
 /** GET /api/exam-taking/check-submitted/:maBaiThi/:maSinhVien */
 export const checkSubmitted = (maBaiThi) =>
@@ -179,3 +179,13 @@ export const getAllLogs = () =>
 /** GET /api/admin/logs/:maTaiKhoan */
 export const getUserLogs = (maTaiKhoan) =>
   get(`/admin/logs/${maTaiKhoan}`, adminHeaders());
+
+// ════════════════════════════════════════════════════════════
+//  ĐỒNG BỘ BÍ DANH (ALIAS EXPORTS) CHO TEACHER PAGE NEW
+// ════════════════════════════════════════════════════════════
+export {
+  getAllBaiThi as getExams,
+  createBaiThi as createExam,
+  updateBaiThi as updateExam,
+  deleteBaiThi as deleteExam
+};

