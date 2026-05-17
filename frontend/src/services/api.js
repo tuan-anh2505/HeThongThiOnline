@@ -85,6 +85,9 @@ export function clearSession() {
 /** GET /api/dashboard/student → { classes, examsValid, examsExpired } */
 export const getDashboardStudent = () => get("/dashboard/student");
 
+export const getDashboardStudentByClass = (tenLop) =>
+  get(`/dashboard/student/exams-by-class-name/${encodeURIComponent(tenLop)}`);
+
 /** GET /api/dashboard/teacher → { examsValid, examsExpired, ... } */
 export const getDashboardTeacher = () => get("/dashboard/teacher");
 
