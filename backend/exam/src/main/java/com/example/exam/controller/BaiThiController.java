@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 
 @RestController
@@ -33,10 +34,12 @@ public class BaiThiController {
     @PostMapping
     public ResponseEntity<BaiThi> createExam(
             @RequestBody BaiThi baiThi,
-            @RequestHeader(value = "X-User-ID", required = false) Integer maTaiKhoan) {
+            @RequestHeader(value = "X-User-ID", required = false) Integer maTaiKhoan,
+            HttpServletRequest request) {
         BaiThi createdExam = baiThiService.createExam(baiThi);
         if (maTaiKhoan != null) {
-            loggingService.logAction(maTaiKhoan, "CREATE_EXAM_" + createdExam.getMaBaiThi(), "");
+            // ĐÃ SỬA: Lấy IP thực tế của Giảng viên thông qua request.getRemoteAddr()
+            loggingService.logAction(maTaiKhoan, "CREATE_EXAM_" + createdExam.getMaBaiThi(), request.getRemoteAddr());
         }
         return ResponseEntity.ok(createdExam);
     }
@@ -45,10 +48,12 @@ public class BaiThiController {
     public ResponseEntity<BaiThi> updateExam(
             @PathVariable Integer maBaiThi,
             @RequestBody BaiThi baiThi,
-            @RequestHeader(value = "X-User-ID", required = false) Integer maTaiKhoan) {
+            @RequestHeader(value = "X-User-ID", required = false) Integer maTaiKhoan,
+            HttpServletRequest request) {
         BaiThi updatedExam = baiThiService.updateExam(maBaiThi, baiThi);
         if (maTaiKhoan != null) {
-            loggingService.logAction(maTaiKhoan, "UPDATE_EXAM_" + maBaiThi, "");
+            // ĐÃ SỬA: Lấy IP thực tế của Giảng viên
+            loggingService.logAction(maTaiKhoan, "UPDATE_EXAM_" + maBaiThi, request.getRemoteAddr());
         }
         return ResponseEntity.ok(updatedExam);
     }
@@ -56,10 +61,12 @@ public class BaiThiController {
     @DeleteMapping("/{maBaiThi}")
     public ResponseEntity<Void> deleteExam(
             @PathVariable Integer maBaiThi,
-            @RequestHeader(value = "X-User-ID", required = false) Integer maTaiKhoan) {
+            @RequestHeader(value = "X-User-ID", required = false) Integer maTaiKhoan,
+            HttpServletRequest request) {
         baiThiService.deleteExam(maBaiThi);
         if (maTaiKhoan != null) {
-            loggingService.logAction(maTaiKhoan, "DELETE_EXAM_" + maBaiThi, "");
+            // ĐÃ SỬA: Lấy IP thực tế của Giảng viên
+            loggingService.logAction(maTaiKhoan, "DELETE_EXAM_" + maBaiThi, request.getRemoteAddr());
         }
         return ResponseEntity.ok().build();
     }

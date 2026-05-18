@@ -24,6 +24,11 @@ public class LoggingService {
         loggingRepository.save(log);
     }
 
+    // ĐÃ BỔ SUNG
+    public List<NhatKyHeThong> getAllLogs() {
+        return loggingRepository.findAll();
+    }
+
     public List<NhatKyHeThong> getUserActionHistory(Integer maTaiKhoan) {
         return loggingRepository.findByMaTaiKhoan(maTaiKhoan);
     }
