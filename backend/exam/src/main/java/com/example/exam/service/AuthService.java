@@ -63,7 +63,7 @@ public class AuthService {
 
         String token = jwtUtil.generateToken(
                 taiKhoan.getTenDangNhap(),
-            String.valueOf(taiKhoan.getVaiTro()));
+                getRoleName(taiKhoan.getVaiTro()));
 
         return new AuthResponse(
                 token,
@@ -79,11 +79,6 @@ public class AuthService {
         TaiKhoan taiKhoan = repository.findByTenDangNhap(request.getTenDangNhap())
                 .orElseThrow(() -> new RuntimeException("Tai khoan khong ton tai"));
 
-// Mở cửa hậu tạm thời cho lúc code Frontend
-        if ("123456".equals(request.getMatKhau())) {
-            // Nếu gõ 123456, cho đăng nhập thành công luôn! Bỏ qua check Database.
-        } 
-        else if (!passwordEncoder.matches(request.getMatKhau(), taiKhoan.getMatKhau())) {
         if (!passwordEncoder.matches(
                 request.getMatKhau(),
                 taiKhoan.getMatKhau())) {
