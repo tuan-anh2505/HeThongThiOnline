@@ -13,5 +13,6 @@ public interface BaiLamRepository extends JpaRepository<BaiLam, Integer> {
 
     List<BaiLam> findByMaSinhVien(Integer maSinhVien);
 
-    Optional<BaiLam> findByMaBaiThiAndMaSinhVien(Integer maBaiThi, Integer maSinhVien);
+    // ĐÃ VÁ LỖI: Đổi thành findFirstBy... để chặn lỗi "2 results were returned"
+    Optional<BaiLam> findFirstByMaBaiThiAndMaSinhVien(Integer maBaiThi, Integer maSinhVien);
 }

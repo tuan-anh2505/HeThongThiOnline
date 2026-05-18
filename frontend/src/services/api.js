@@ -213,3 +213,24 @@ export {
   updateBaiThi as updateExam,
   deleteBaiThi as deleteExam
 };
+// =========================================================
+// API QUẢN LÝ DANH MỤC (ADMIN) - ĐÃ VƯỢT QUA BỘ LỌC BẢO MẬT 403
+// =========================================================
+
+// 1. Quản lý Môn Học
+export const getAllSubjects = () => get("/admin/users/monthi", adminHeaders());
+export const createSubject = (data) => post("/admin/users/monthi", data, adminHeaders());
+export const updateSubject = (id, data) => put(`/admin/users/monthi/${id}`, data, adminHeaders());
+export const deleteSubject = (id) => del(`/admin/users/monthi/${id}`, adminHeaders());
+
+// 2. Quản lý Lớp Học
+export const getAllClasses = () => get("/admin/users/lop", adminHeaders());
+export const createClass = (data) => post("/admin/users/lop", data, adminHeaders());
+export const updateClass = (id, data) => put(`/admin/users/lop/${id}`, data, adminHeaders());
+export const deleteClass = (id) => del(`/admin/users/lop/${id}`, adminHeaders());
+
+// 3. Quản lý Ca Thi
+export const getAllShifts = () => get("/admin/users/cathi", adminHeaders());
+export const createShift = (data) => post("/admin/users/cathi", data, adminHeaders());
+export const updateShift = (id, data) => put(`/admin/users/cathi/${id}`, data, adminHeaders());
+export const deleteShift = (id) => del(`/admin/users/cathi/${id}`, adminHeaders());

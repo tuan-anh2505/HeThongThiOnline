@@ -39,7 +39,8 @@ public class BaiLamService {
     private final ObjectMapper objectMapper;
 
     public BaiLam startExam(Integer maSinhVien, Integer maBaiThi) {
-        Optional<BaiLam> existing = baiLamRepository.findByMaBaiThiAndMaSinhVien(maBaiThi, maSinhVien);
+        // ĐÃ CẬP NHẬT GỌI HÀM findFirstBy...
+        Optional<BaiLam> existing = baiLamRepository.findFirstByMaBaiThiAndMaSinhVien(maBaiThi, maSinhVien);
         if (existing.isPresent()) {
             BaiLam baiLam = existing.get();
             if (baiLam.getThoiGianNop() != null) {
@@ -101,7 +102,8 @@ public class BaiLamService {
     }
 
     public Optional<BaiLam> getSubmittedExam(Integer maBaiThi, Integer maSinhVien) {
-        return baiLamRepository.findByMaBaiThiAndMaSinhVien(maBaiThi, maSinhVien);
+        // ĐÃ CẬP NHẬT
+        return baiLamRepository.findFirstByMaBaiThiAndMaSinhVien(maBaiThi, maSinhVien);
     }
 
     public List<BaiLam> getSubmissionsByExam(Integer maBaiThi) {
@@ -116,13 +118,13 @@ public class BaiLamService {
         return baiLamRepository.findByMaSinhVien(maSinhVien);
     }
 
-    // ── HÀM LẤY TOÀN BỘ BÀI LÀM CỦA HỆ THỐNG ──
     public List<BaiLam> getAllBaiLam() {
         return baiLamRepository.findAll();
     }
 
     public boolean hasStudentSubmittedExam(Integer maBaiThi, Integer maSinhVien) {
-        return baiLamRepository.findByMaBaiThiAndMaSinhVien(maBaiThi, maSinhVien)
+        // ĐÃ CẬP NHẬT
+        return baiLamRepository.findFirstByMaBaiThiAndMaSinhVien(maBaiThi, maSinhVien)
                 .map(baiLam -> baiLam.getThoiGianNop() != null)
                 .orElse(false);
     }
@@ -136,7 +138,8 @@ public class BaiLamService {
                 .orElse(null);
 
         if (maSinhVien != null) {
-            Optional<BaiLam> baiLam = baiLamRepository.findByMaBaiThiAndMaSinhVien(maBaiThi, maSinhVien);
+            // ĐÃ CẬP NHẬT
+            Optional<BaiLam> baiLam = baiLamRepository.findFirstByMaBaiThiAndMaSinhVien(maBaiThi, maSinhVien);
             if (baiLam.isPresent() && baiLam.get().getThoiGianBatDau() != null && baiThi.getThoiLuong() != null) {
                 LocalDateTime durationEnd = baiLam.get().getThoiGianBatDau().plusMinutes(baiThi.getThoiLuong());
                 endAt = endAt == null || durationEnd.isBefore(endAt) ? durationEnd : endAt;

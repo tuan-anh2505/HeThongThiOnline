@@ -12,6 +12,7 @@ import com.example.exam.dto.AuthResponse;
 import com.example.exam.dto.LoginRequest;
 import com.example.exam.dto.RegisterRequest;
 import com.example.exam.service.AuthService;
+import com.example.exam.service.LoggingService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ import lombok.RequiredArgsConstructor;
 public class AuthController {
 
     private final AuthService authService;
+    private final LoggingService loggingService;
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request) {
@@ -30,8 +32,13 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
-        return ResponseEntity.ok(authService.login(request));
+    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request, HttpServletRequest httpRequest) {
+        AuthResponse response = authService.login(request);
+        // Ghi Log ngay khi đăng nhập thành công
+        if (response != null && response.getMaTaiKhoan() != null) {
+            loggingService.logLogin(response.getMaTaiKhoan(), httpRequest.getRemoteAddr());
+        }
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/logout")
@@ -39,7 +46,14 @@ public class AuthController {
             @RequestHeader(value = "Authorization", required = false) String token,
             @RequestHeader(value = "X-User-ID", required = false) String maTaiKhoan,
             HttpServletRequest request) {
-        return ResponseEntity.ok(authService.logout(token, parseInteger(maTaiKhoan), request.getRemoteAddr()));
+        
+        Integer id = parseInteger(maTaiKhoan);
+        // Ghi Log ngay khi nhấn nút đăng xuất
+        if (id != null) {
+            loggingService.logLogout(id, request.getRemoteAddr());
+        }
+        
+        return ResponseEntity.ok(authService.logout(token, id, request.getRemoteAddr()));
     }
 
     private Integer parseInteger(String value) {

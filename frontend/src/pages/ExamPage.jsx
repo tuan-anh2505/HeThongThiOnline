@@ -414,8 +414,8 @@ const S = {
   progressFill:{ height:"100%", background:"linear-gradient(90deg,#7F77DD,#1D9E75)", borderRadius:6, transition:"width 0.4s" },
   qnav:        { background:"white", borderBottom:"1px solid #EEEDFE", padding:"8px 24px", display:"flex", gap:6, flexWrap:"wrap" },
   qdot:        { width:30, height:30, borderRadius:"50%", border:"2px solid #D3D1C7", background:"white", fontSize:12, fontWeight:700, cursor:"pointer", color:"#888780", display:"flex", alignItems:"center", justifyContent:"center" },
-  qdotDone:    { background:"#7F77DD", borderColor:"#7F77DD", color:"white" },
-  qdotCur:     { borderColor:"#7F77DD", boxShadow:"0 0 0 3px rgba(127,119,221,0.2)" },
+  qdotDone:    { background:"#7F77DD", border:"2px solid #7F77DD", color:"white" }, // ĐÃ SỬA
+  qdotCur:     { border:"2px solid #7F77DD", boxShadow:"0 0 0 3px rgba(127,119,221,0.2)" }, // ĐÃ SỬA
   main:        { padding:20, maxWidth:760, margin:"0 auto" },
   qcard:       { background:"white", borderRadius:20, padding:24, boxShadow:"0 4px 20px rgba(0,0,0,0.06)", marginBottom:0 },
   qhead:       { display:"flex", alignItems:"center", gap:10, marginBottom:16 },
@@ -432,19 +432,19 @@ const S = {
 
 const A = {
   choice:         { background:"#F8F7FF", border:"2px solid #EEEDFE", borderRadius:14, padding:"12px 14px", cursor:"pointer", display:"flex", alignItems:"center", gap:10, textAlign:"left", fontSize:14, color:"#444441", fontWeight:600, width: "100%" },
-  choiceSel:      { background:"#7F77DD", borderColor:"#534AB7", color:"white" },
+  choiceSel:      { background:"#7F77DD", border:"2px solid #534AB7", color:"white" }, // ĐÃ SỬA
   key:            { width:26, height:26, borderRadius:"50%", background:"white", display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:800, color:"#7F77DD", flexShrink:0, border:"2px solid #EEEDFE" },
   keySel:         { color:"#534AB7" },
   bool:           { flex:1, padding:14, border:"2px solid #D3D1C7", borderRadius:16, cursor:"pointer", fontSize:15, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center", gap:8, background:"white", color:"#444441" },
-  boolTrue:       { background:"#E1F5EE", borderColor:"#1D9E75", color:"#085041" },
-  boolFalse:      { background:"#FCEBEB", borderColor:"#E24B4A", color:"#501313" },
+  boolTrue:       { background:"#E1F5EE", border:"2px solid #1D9E75", color:"#085041" }, // ĐÃ SỬA
+  boolFalse:      { background:"#FCEBEB", border:"2px solid #E24B4A", color:"#501313" }, // ĐÃ SỬA
   fillInput:      { border:"none", borderBottom:"3px solid #7F77DD", background:"#F8F7FF", padding:"4px 12px", borderRadius:"8px 8px 0 0", fontSize:15, fontWeight:700, color:"#3C3489", width:130, outline:"none" },
   matchLabel:     { fontSize:11, fontWeight:800, color:"#888780", textTransform:"uppercase", letterSpacing:1, marginBottom:6 },
   matchLeft:      { background:"#FAEEDA", border:"2px solid #FAC775", borderRadius:12, padding:"10px 14px", fontSize:13, fontWeight:700, color:"#633806", cursor:"pointer", marginBottom:8, display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" },
-  matchLeftSel:   { background:"#7F77DD", borderColor:"#534AB7", color:"white" },
+  matchLeftSel:   { background:"#7F77DD", border:"2px solid #534AB7", color:"white" }, // ĐÃ SỬA
   matchTag:       { background:"white", color:"#534AB7", borderRadius:8, padding:"2px 6px", fontSize:11, fontWeight:700, marginLeft:"auto" },
   matchRight:     { background:"#F8F7FF", border:"2px dashed #AFA9EC", borderRadius:12, padding:"10px 14px", fontSize:13, fontWeight:600, color:"#888780", minHeight:44, display:"flex", alignItems:"center", cursor:"pointer", marginBottom:8 },
-  matchRightFilled:{ background:"#EEEDFE", borderStyle:"solid", borderColor:"#7F77DD", color:"#3C3489", fontWeight:700 },
+  matchRightFilled:{ background:"#EEEDFE", borderStyle:"solid", border:"2px solid #7F77DD", color:"#3C3489", fontWeight:700 }, // ĐÃ SỬAground:"#EEEDFE", borderStyle:"solid", borderColor:"#7F77DD", color:"#3C3489", fontWeight:700 },
 };
 
 const RS = {

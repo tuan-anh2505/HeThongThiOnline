@@ -152,7 +152,9 @@ public class DashboardService {
 
     private ExamResponse convertToExamResponse(BaiThi baiThi, Integer maSinhVien) {
         ExamResponse response = convertToExamResponse(baiThi);
-        baiLamRepository.findByMaBaiThiAndMaSinhVien(baiThi.getMaBaiThi(), maSinhVien)
+        
+        // ĐÃ VÁ LỖI: Cập nhật gọi đúng tên hàm findFirstBy...
+        baiLamRepository.findFirstByMaBaiThiAndMaSinhVien(baiThi.getMaBaiThi(), maSinhVien)
                 .ifPresentOrElse(baiLam -> {
                     response.setDaNop(baiLam.getThoiGianNop() != null);
                     response.setDiem(baiLam.getDiemTong());
