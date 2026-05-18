@@ -112,6 +112,15 @@ public class BaiLamService {
         return baiLamRepository.findByMaSinhVien(maSinhVien);
     }
 
+    public List<BaiLam> getBaiLamByMaSinhVien(Integer maSinhVien) {
+        return baiLamRepository.findByMaSinhVien(maSinhVien);
+    }
+
+    // ── HÀM LẤY TOÀN BỘ BÀI LÀM CỦA HỆ THỐNG ──
+    public List<BaiLam> getAllBaiLam() {
+        return baiLamRepository.findAll();
+    }
+
     public boolean hasStudentSubmittedExam(Integer maBaiThi, Integer maSinhVien) {
         return baiLamRepository.findByMaBaiThiAndMaSinhVien(maBaiThi, maSinhVien)
                 .map(baiLam -> baiLam.getThoiGianNop() != null)

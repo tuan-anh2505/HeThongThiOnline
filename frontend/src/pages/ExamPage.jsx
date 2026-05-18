@@ -3,7 +3,7 @@
 // ============================================================
 import { useState, useEffect, useRef, useCallback } from "react";
 import { startExam, getQuestions, submitExam, reportViolation } from "../services/api";
-import { gradeExam, gradeQuestion, formatCountdown, LOAI_CAU_HOI } from "../utils/helpers";
+import { formatCountdown, LOAI_CAU_HOI } from "../utils/helpers";
 
 export default function ExamPage({ exam, onBack }) {
   const [questions, setQuestions] = useState([]);
@@ -15,10 +15,15 @@ export default function ExamPage({ exam, onBack }) {
   const [alert,     setAlert]     = useState({ show:false, msg:"" });
   const [violations,setViols]     = useState(0);
   const [baiLamId,  setBaiLamId]  = useState(null);
+  
+  // State: Hứng kết quả điểm thi từ Backend
+  const [finalResult, setFinalResult] = useState(null);
+  
+  // Thời lượng
   const [timerSec,  setTimerSec]  = useState((exam?.thoiLuong || 45) * 60);
   const alertTimer = useRef(null);
 
-  // ── THUẬT TOÁN XÁO TRỘN MẢNG NGẪU NHIÊN (Fisher-Yates Shuffle) ── 🎲
+  // ── THUẬT TOÁN XÁO TRỘN MẢNG NGẪU NHIÊN ── 🎲
   const shuffleArray = (array) => {
     const shuffled = [...array];
     for (let i = shuffled.length - 1; i > 0; i--) {
@@ -28,40 +33,45 @@ export default function ExamPage({ exam, onBack }) {
     return shuffled;
   };
 
-  // ── Init: Bắt đầu thi + Tải CÂU HỎI THẬT & RANDOM từ Database ──
+  // ── Init: Bắt đầu thi + Tải CÂU HỎI ──
   useEffect(() => {
     const init = async () => {
       let activeBaiLamId = null;
       
-      // 1. Khởi tạo phiên làm bài
+      // BƯỚC 1: XIN CẤP MÃ PHIÊN LÀM BÀI TỪ SERVER
       try {
         const bl = await startExam(exam?.maBaiThi);
         activeBaiLamId = bl?.maBaiLam || bl; 
-        if (activeBaiLamId) setBaiLamId(activeBaiLamId);
+        
+        if (activeBaiLamId) {
+            setBaiLamId(activeBaiLamId); // Lưu mã thành công
+        } else {
+            // ĐÃ VÁ LỖ HỔNG: Nếu Backend không trả về mã -> Báo lỗi & Đá ra ngoài
+            setAlert({ show: true, msg: "Không thể bắt đầu: Bài thi chưa mở hoặc đã hết hạn!" });
+            setLoading(false);
+            setTimeout(onBack, 3000); // 3 giây sau văng ra trang chủ
+            return; // Cắt luồng, không cho tải câu hỏi nữa
+        }
       } catch (err) {
         console.error("Lỗi tạo phiên làm bài:", err);
+        setAlert({ show: true, msg: "Lỗi hệ thống: Bài thi chưa mở, hết hạn hoặc bạn không có quyền thi!" });
+        setLoading(false);
+        setTimeout(onBack, 3000);
+        return; 
       }
       
-      // 2. Tải câu hỏi theo mã đề và xáo trộn Random chống gian lận
+      // BƯỚC 2: CHỈ TẢI CÂU HỎI KHI ĐÃ CÓ MÃ PHIÊN LÀM BÀI HỢP LỆ
       try {
-        // ĐÃ SỬA LỖI ĐỀ TRỐNG: Đổi tham số truyền vào từ maBaiThi sang mã đề bài thi thực tế
         const qs = await getQuestions(exam?.maBaiThi);
         
         if (Array.isArray(qs) && qs.length > 0) {
-          // Thực hiện Random thứ tự các CÂU HỎI trong đề
           let randomizedQuestions = shuffleArray(qs);
-          
-          // Thực hiện Random thứ tự các ĐÁP ÁN (A, B, C, D) bên trong từng câu hỏi trắc nghiệm
           randomizedQuestions = randomizedQuestions.map(q => {
             if (q.loaiCauHoi === 1 && q.dapAnTracNghiem) {
-              return {
-                ...q,
-                dapAnTracNghiem: shuffleArray(q.dapAnTracNghiem)
-              };
+              return { ...q, dapAnTracNghiem: shuffleArray(q.dapAnTracNghiem) };
             }
             return q;
           });
-
           setQuestions(randomizedQuestions);
         } else {
           setQuestions([]);
@@ -75,15 +85,17 @@ export default function ExamPage({ exam, onBack }) {
     
     if (exam?.maBaiThi) {
       init();
+    } else {
+      setLoading(false); 
     }
-  }, [exam]);
+  }, [exam]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Bộ đếm ngược thời gian (Timer) ──
   useEffect(() => {
     if (loading || submitted || questions.length === 0) return;
     const id = setInterval(() => {
       setTimerSec(t => {
-        if (t <= 1) { clearInterval(id); doSubmit(true); return 0; }
+        if (t <= 1) { clearInterval(id); doSubmit(); return 0; }
         return t - 1;
       });
     }, 1000);
@@ -117,44 +129,51 @@ export default function ExamPage({ exam, onBack }) {
     };
   }, [submitted, triggerAlert, questions.length]);
 
-  // ── Nộp bài (Submit) ──
+  // ── Nộp bài (Submit) và chờ điểm từ Backend ──
   const doSubmit = async () => {
     setShowModal(false);
-    setSubmitted(true);
+    
+    // Đảm bảo không nộp khi chưa có mã bài làm để chống lỗi HTTP 403
+    if (!baiLamId) {
+        setAlert({ show: true, msg: "Lỗi: Không tìm thấy phiên làm bài hợp lệ!" });
+        return;
+    }
     
     try { 
-      // Gửi mảng đáp án đã chọn lên Backend để lưu vết chấm điểm
-      await submitExam(baiLamId, answers); 
+      const result = await submitExam(baiLamId, answers); 
+      setFinalResult(result); 
+      setSubmitted(true);     
     } catch (err) {
       console.error("Lỗi khi Backend lưu điểm:", err);
+      setAlert({ show: true, msg: "Lỗi kết nối khi nộp bài. Vui lòng thử lại!" });
     }
   };
 
   const setAns = (maCauHoi, val) => setAnswers(a => ({ ...a, [maCauHoi]: val }));
 
-  // ── Tính toán tiến độ làm bài ──
   const answered = questions.filter(q => answers[q.maCauHoi] != null).length;
   const timerColor = timerSec < 60 ? "#E24B4A" : timerSec < 300 ? "#BA7517" : "#3C3489";
   const timerBg    = timerSec < 60 ? "#FCEBEB" : timerSec < 300 ? "#FAEEDA" : "#EEEDFE";
 
-  // ── HIỂN THỊ KHI ĐỀ THI KHÔNG CÓ CÂU HỎI TRONG DATABASE ──
-  if (!loading && questions.length === 0) {
+  // ── MÀN HÌNH CHỜ/ĐỀ TRỐNG ──
+  if (!loading && (!exam?.maBaiThi || questions.length === 0)) {
     return (
       <div style={{ ...S.page, display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ textAlign: "center", background: "white", padding: 40, borderRadius: 20, boxShadow: "0 10px 30px rgba(0,0,0,0.1)", maxWidth: 400 }}>
           <div style={{ fontSize: 50, marginBottom: 16 }}>📭</div>
           <h2 style={{ color: "#A32D2D", fontFamily: "'Segoe UI',sans-serif", margin: 0 }}>Đề thi trống!</h2>
-          <p style={{ color: "#666", marginBottom: 24, fontSize: 14 }}>Giảng viên chưa cấu hình hoặc phân phối bộ câu hỏi của ngân hàng vào đề kiểm tra này.</p>
+          <p style={{ color: "#666", marginBottom: 24, fontSize: 14 }}>Giảng viên chưa cấu hình đề kiểm tra này hoặc có lỗi nạp dữ liệu.</p>
           <button style={S.btnSubmit} onClick={onBack}>← Quay lại trang chủ</button>
         </div>
       </div>
     );
   }
 
-  // ── Màn hình Kết quả (Sau khi nộp bài) ──
+  // ── MÀN HÌNH KẾT QUẢ ĐIỂM SERVER ──
   if (submitted) {
-    const { diem10 } = gradeExam(questions, answers);
+    const diem10 = finalResult?.diemTong || 0; 
     const pass = diem10 >= 5;
+    
     return (
       <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center",
         background:"linear-gradient(135deg,#f0effe,#e1f5ee)", fontFamily:"'Nunito',sans-serif", padding:24 }}>
@@ -163,7 +182,10 @@ export default function ExamPage({ exam, onBack }) {
           <div style={{ fontSize:26, fontWeight:800, color: pass?"#085041":"#A32D2D", marginBottom:8 }}>
             {pass ? "Chúc mừng! Đạt môn" : "Chưa đạt — Cố lên!"}
           </div>
-          <div style={{ fontSize:14, color:"#888780", marginBottom:28 }}>Kết quả đã được ghi nhận vào hệ thống</div>
+          <div style={{ fontSize:14, color:"#888780", marginBottom:28 }}>
+            Kết quả đã được ghi nhận vào hệ thống Server
+          </div>
+          
           <div style={{ display:"flex", justifyContent:"center", gap:32, marginBottom:28 }}>
             <div style={{ textAlign:"center" }}>
               <div style={{ fontSize:52, fontWeight:800, color: diem10>=8?"#085041":diem10>=6.5?"#534AB7":diem10>=5?"#633806":"#A32D2D" }}>
@@ -179,24 +201,11 @@ export default function ExamPage({ exam, onBack }) {
               <div style={{ fontSize:13, color:"#888780", fontWeight:600 }}>Vi phạm</div>
             </div>
           </div>
-          <div style={RS.breakdown}>
-            {questions.map((q, i) => {
-              const got  = gradeQuestion(q, answers[q.maCauHoi]);
-              const full = got >= q.diem;
-              const half = got > 0 && !full;
-              return (
-                <div key={q.maCauHoi} style={RS.row}>
-                  <span style={{ fontSize:16 }}>{full?"✅":half?"🟡":"❌"}</span>
-                  <span style={{ flex:1, fontSize:13, fontWeight:600, color:"#444441" }}>
-                    Câu {i+1} — {LOAI_CAU_HOI[q.loaiCauHoi]?.label}
-                  </span>
-                  <span style={{ fontWeight:700, color: full?"#085041":half?"#633806":"#A32D2D" }}>
-                    {got}/{q.diem}đ
-                  </span>
-                </div>
-              );
-            })}
+          
+          <div style={{ background: "#F8F7FF", borderRadius: 12, padding: 16, marginBottom: 24, fontSize: 14, color: "#534AB7", fontWeight: 600, textAlign: "left", lineHeight: 1.5 }}>
+            💡 Điểm số này được chấm tự động và xác thực tuyệt đối bởi máy chủ (Backend). Chi tiết từng câu đúng/sai bị ẩn đi nhằm đảm bảo tính bảo mật và công bằng cho đề thi.
           </div>
+          
           <button style={RS.btn} onClick={onBack}>← Về trang chủ</button>
         </div>
       </div>
@@ -222,7 +231,7 @@ export default function ExamPage({ exam, onBack }) {
       <div style={S.topbar}>
         <div style={{ flex:1 }}>
           <div style={S.examTitle}>🎓 {exam?.tenBaiThi || "Bài thi"}</div>
-          <div style={S.examSub}>{exam?.tenMonThi} · {exam?.thoiLuong} phút</div>
+          <div style={S.examSub}>Môn ID: {exam?.maMonThi} · {exam?.thoiLuong} phút</div>
         </div>
         <div style={{ display:"flex", alignItems:"center", gap:10 }}>
           {violations > 0 && <div style={S.viphamChip}>⚠️ {violations} vi phạm</div>}
@@ -390,7 +399,7 @@ function GhepTu({ q, ans = {}, onChange }) {
   );
 }
 
-// ── Styles CSS Giữ nguyên bản để không vỡ UI ────────────────
+// ── Styles CSS ────────────────
 const S = {
   page:        { minHeight:"100vh", background:"linear-gradient(135deg,#f0effe,#e1f5ee,#fbeaf0)", fontFamily:"'Nunito',sans-serif" },
   alertBanner: { position:"fixed", top:0, left:0, right:0, background:"#E24B4A", color:"white", padding:"10px 20px", display:"flex", alignItems:"center", gap:10, fontSize:14, fontWeight:700, zIndex:9999, transition:"transform 0.3s ease" },

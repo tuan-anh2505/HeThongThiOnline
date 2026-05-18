@@ -42,39 +42,47 @@ export function gradeQuestion(q, ans) {
       // Trắc nghiệm
       // Cẩn thận bắt cả trường hợp DB trả về true, "true", hoặc 1
       const correctOption = q.dapAnTracNghiem?.find(
-        (a) => a.laDapAnDung === true || a.laDapAnDung === 1 || String(a.laDapAnDung) === "true"
+        (a) => a.laDapAnDung === true || a.laDapAnDung === 1 || String(a.laDapAnDung).toLowerCase() === "true"
       );
-      const correct = correctOption?.maDapAn;
       
-      // ĐÃ SỬA: Ép kiểu String để chống lỗi "1" === 1
-      return String(ans) === String(correct) ? maxDiem : 0;
+      // Nếu Backend giấu trường laDapAnDung, correctOption sẽ là undefined
+      if (!correctOption) return 0; 
+      
+      const correct = correctOption.maDapAn;
+      
+      // ĐÃ SỬA: Ép kiểu String và cắt khoảng trắng thừa để so sánh tuyệt đối an toàn
+      return String(ans).trim() === String(correct).trim() ? maxDiem : 0;
     }
     case 2: {
       // Đúng/Sai
-      const correct = q.dapAnDungSai?.dapAnDung;
-      // ĐÃ SỬA: Ép kiểu String
-      return String(ans) === String(correct) ? maxDiem : 0;
+      // Bắt trường hợp dapAnDungSai là một Object hoặc là giá trị trực tiếp
+      const correct = typeof q.dapAnDungSai === 'object' ? q.dapAnDungSai?.dapAnDung : q.dapAnDungSai;
+      if (correct === undefined) return 0;
+      
+      // ĐÃ SỬA: Ép kiểu String và đưa về chữ thường
+      return String(ans).trim().toLowerCase() === String(correct).trim().toLowerCase() ? maxDiem : 0;
     }
     case 3: {
       // Ghép từ 
       const pairs   = q.dapAnGhepTu || [];
       if (!pairs.length) return 0;
-      const correct = pairs.filter(
-        (p) => String((ans || {})[p.maGhep]) === String(p.vePhai)
+      const correctCount = pairs.filter(
+        (p) => String((ans || {})[p.maGhep]).trim().toLowerCase() === String(p.vePhai).trim().toLowerCase()
       ).length;
-      return +((correct / pairs.length) * maxDiem).toFixed(2);
+      return +((correctCount / pairs.length) * maxDiem).toFixed(2);
     }
     case 4: {
-      // Điền chỗ trống (Hôm trước tôi đã sửa phần này cho bạn rồi)
+      // Điền chỗ trống
       const blanks  = q.dapAnDienChoTrong || [];
       if (!blanks.length) return 0;
       const filled  = ans || [];
-      const correct = blanks.filter(
+      const correctCount = blanks.filter(
         (b, i) =>
           String(filled[i] || "").trim().toLowerCase() ===
-          String(b.tuKhoaDung || "").trim().toLowerCase()
+          // Bắt cả 2 trường hợp tên biến backend có thể trả về: tuKhoaDung hoặc noiDungDapAn
+          String(b.tuKhoaDung || b.noiDungDapAn || "").trim().toLowerCase()
       ).length;
-      return +((correct / blanks.length) * maxDiem).toFixed(2);
+      return +((correctCount / blanks.length) * maxDiem).toFixed(2);
     }
     default:
       return 0;

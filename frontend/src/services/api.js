@@ -137,6 +137,10 @@ export const checkSubmitted = (maBaiThi) =>
 export const reportViolation = () =>
   post("/exam-taking/copy-paste-detect").catch(() => {});
 
+/** GET /api/exam-taking/history → Lấy danh sách lịch sử bài làm của sinh viên */
+export const getHistoryExams = () => 
+  get("/exam-taking/history").catch(() => []); // Nếu lỗi (VD: backend chưa có api) thì trả về mảng rỗng để không bị sập web
+
 // ════════════════════════════════════════════════════════════
 //  ANALYTICS  (Teacher)
 // ════════════════════════════════════════════════════════════

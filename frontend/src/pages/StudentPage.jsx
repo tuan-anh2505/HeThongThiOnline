@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-// Import hàm gọi API từ file cấu hình api.js của bạn
-import { getExams } from "../services/api"; 
+import { getExams, getHoTen, getHistoryExams } from "../services/api"; 
 
 const THEME_COLORS = {
   primary: "#534AB7", 
@@ -15,7 +14,6 @@ const THEME_COLORS = {
   bgBody: "#F8F9FD"
 };
 
-// Từ điển môn học để hiển thị tên tiếng Việt có dấu thay vì hiện mã ID khô khan
 const MOCK_MON_HOC = [
   { id: 1, name: "Lập trình mạng" },
   { id: 2, name: "Cơ sở dữ liệu" },
@@ -26,7 +24,6 @@ const MOCK_MON_HOC = [
   { id: 7, name: "Java cơ bản" }
 ];
 
-// Danh sách 9 lớp hành chính đồng bộ hệ thống của bạn
 const MOCK_LOP = [
   { id: 1, name: "TTM63" }, { id: 2, name: "TTM64" }, { id: 3, name: "TTMN65" },
   { id: 4, name: "KPM63" }, { id: 5, name: "KPM64" }, { id: 6, name: "KPM65" },
@@ -40,55 +37,68 @@ const MOCK_CA_THI_ARRAY = [
   { id: 4, start: "15:30", end: "17:30" }
 ];
 
-export default function StudentPage({ studentInfo = { hoTen: "ha quang dat" }, onLogout, onStartExam }) {
-  // Menu điều hướng: 'home' (Trang chủ) | 'exams' (Bài thi) | 'results' (Kết quả)
+export default function StudentPage({ onLogout, onStartExam }) {
+  // Lấy tên động từ LocalStorage (từ API Login)
+  const hoTenSinhVien = getHoTen() || "Sinh viên";
+  const avatarChar = hoTenSinhVien.charAt(0).toUpperCase();
+
   const [currentMenu, setCurrentMenu] = useState("home"); 
-  
   const [exams, setExams] = useState([]);
   const [loading, setLoading] = useState(false);
   const [systemTime, setSystemTime] = useState(new Date());
-
-  // MẶC ĐỊNH LÀ "all" (Tất cả các lớp) để sinh viên có thể tự do xem và chọn làm đề của bất kỳ lớp nào
   const [selectedClassId, setSelectedClassId] = useState("all"); 
   const [examFilter, setExamFilter] = useState("all"); 
 
-  // Dữ liệu Lịch sử làm bài cá nhân
-  const [historyExams, setHistoryExams] = useState([
-    { maBaiThi: 99, tenBaiThi: "Kiểm tra điều kiện trắc nghiệm C", maMonThi: 6, thoiLuong: 45, ngayNop: "15/05/2026", diem: 8.5 },
-    { maBaiThi: 88, tenBaiThi: "Thi thử trắc nghiệm Triết học", maMonThi: 3, thoiLuong: 60, ngayNop: "12/05/2026", diem: 7.0 }
-  ]);
+  const [historyExams, setHistoryExams] = useState([]);
 
-  // Đồng hồ chạy thời gian thực mỗi giây
   useEffect(() => {
     const timer = setInterval(() => setSystemTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // 🛠️ FETCH DỮ LIỆU ĐỀ THI THẬT TỪ BACKEND - SỬA TRIỆT ĐỂ LỖI ĐỀ TRỐNG
+  // GỌI API ĐỒNG BỘ ĐỀ THI VÀ LỊCH SỬ TỪ BACKEND
   useEffect(() => {
-    setLoading(true);
-    getExams()
-      .then((data) => {
-        // Đồng bộ dữ liệu thật từ bảng `bai_thi` trong database SQL Server lên giao diện sinh viên
-        setExams(data || []);
-      })
-      .catch((err) => {
-        console.error("Lỗi lấy danh sách đề thi từ API Backend:", err);
-      })
-      .finally(() => setLoading(false));
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const examsData = await getExams();
+        const validExams = examsData || [];
+        setExams(validExams);
+
+        const historyData = await getHistoryExams();
+        
+        if (historyData && Array.isArray(historyData)) {
+          
+          // 🚀 ĐÃ TÍCH HỢP: Lọc (.filter) bỏ những bài làm mà đề thi đã bị xóa
+          const formattedHistory = historyData
+            .filter(baiLam => validExams.some(e => e.maBaiThi === baiLam.maBaiThi))
+            .map(baiLam => {
+              const examDetails = validExams.find(e => e.maBaiThi === baiLam.maBaiThi);
+              return {
+                maBaiThi: baiLam.maBaiThi,
+                tenBaiThi: examDetails.tenBaiThi,
+                maMonThi: examDetails.maMonThi,
+                thoiLuong: examDetails.thoiLuong,
+                ngayNop: baiLam.thoiGianNop ? new Date(baiLam.thoiGianNop).toLocaleString("vi-VN") : "Đã nộp",
+                diem: baiLam.diemTong || 0
+              };
+            });
+            
+          setHistoryExams(formattedHistory);
+        }
+      } catch (err) {
+        console.error("Lỗi đồng bộ dữ liệu hệ thống:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
   }, []);
 
-  // 🎲 THUẬT TOÁN XÁO TRỘN NGẪU NHIÊN RANDOM CÂU HỎI (Fisher-Yates Shuffle)
-  const handleStartExamWithRandom = (maBaiThi) => {
-    // Khi gọi hàm này, hệ thống sẽ báo lên App.jsx để chuẩn bị giao diện làm bài thi
-    // Ở đây ta có thể truyền thêm một cờ báo Random, hoặc xử lý trộn mảng câu hỏi
-    console.log(`Kích hoạt làm bài thi số #${maBaiThi} với chế độ Random câu hỏi`);
-    
-    // Gọi hàm bắt đầu làm bài của hệ thống gốc
-    onStartExam(maBaiThi);
+  const handleStartExamWithRandom = (examObj) => {
+    onStartExam(examObj);
   };
 
-  // Tính toán trạng thái thời gian thực của Ca thi
   const getExamStatus = (exam) => {
     if (exam.maCaThi === 5) return "INFINITE"; 
 
@@ -114,25 +124,22 @@ export default function StudentPage({ studentInfo = { hoTen: "ha quang dat" }, o
     return "EXPIRED"; 
   };
 
-  const getMonHocName = (id) => MOCK_MON_HOC.find(m => m.id === id)?.name || `Môn học khác`;
+  const getMonHocName = (id) => MOCK_MON_HOC.find(m => m.id === id)?.name || `Môn ID: ${id}`;
   const getLopName = (id) => {
     if (id === "all") return "Tất cả các lớp";
     return MOCK_LOP.find(l => l.id === parseInt(id))?.name || `Lớp ID: ${id}`;
   };
 
-  // Bộ lọc dữ liệu đề thi theo Lớp chọn ở ô Dropdown
   const getExamsByClassFilter = () => {
     if (selectedClassId === "all") return exams;
     return exams.filter(e => e.maLop === parseInt(selectedClassId));
   };
 
-  // 1. Dữ liệu hiển thị Trang chủ (Chỉ hiện các bài đang mở hành chính OPEN hoặc INFINITE)
   const homeExams = getExamsByClassFilter().filter(exam => {
     const status = getExamStatus(exam);
     return status === "OPEN" || status === "INFINITE";
   });
 
-  // 2. Dữ liệu hiển thị Tab bài thi (Phân loại theo trạng thái lọc)
   const filteredExamsTab = getExamsByClassFilter().filter(exam => {
     const status = getExamStatus(exam);
     if (examFilter === "all") return true;
@@ -142,32 +149,31 @@ export default function StudentPage({ studentInfo = { hoTen: "ha quang dat" }, o
   return (
     <div className="app-container" style={{ display: "flex", background: "#F8F9FD", minHeight: "100vh" }}>
       
-      {/* 1. SIDEBAR TRÁI - GIỮ NGUYÊN HOÀN TOÀN DESIGN GỐC */}
+      {/* SIDEBAR TRÁI */}
       <div className="sidebar" style={{ width: "260px", background: "white", padding: "20px", display: "flex", flexDirection: "column", justifyContent: "space-between", borderRight: "1px solid #E2E8F0" }}>
         <div>
-          {/* Logo */}
           <div className="logo-section" style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "30px" }}>
             <span style={{ color: "#534AB7", fontSize: "20px" }}>🎓</span>
             <span style={{ fontWeight: "bold", color: "#534AB7", fontSize: "18px" }}>ExamOnline</span>
           </div>
 
-          {/* Profile cá nhân */}
+          {/* HIỂN THỊ TÊN THẬT */}
           <div className="user-card" style={{ background: "#F1F5F9", padding: "12px", borderRadius: "12px", display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px" }}>
-            <div className="avatar" style={{ width: "40px", height: "40px", borderRadius: "50%", background: "#BA7517", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>{studentInfo.hoTen.charAt(0)}</div>
+            <div className="avatar" style={{ width: "40px", height: "40px", borderRadius: "50%", background: "#BA7517", color: "white", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>
+              {avatarChar}
+            </div>
             <div>
-              <div style={{ fontWeight: "bold", fontSize: "14px", color: "#2C3E50" }}>{studentInfo.hoTen}</div>
+              <div style={{ fontWeight: "bold", fontSize: "14px", color: "#2C3E50" }}>{hoTenSinhVien}</div>
               <div style={{ fontSize: "12px", color: "#64748B" }}>👤 Sinh viên</div>
             </div>
           </div>
 
-          {/* Menu chọn tính năng */}
           <div className="menu-links" style={{ display: "flex", flexDirection: "column", gap: "5px", marginBottom: "20px" }}>
             <button onClick={() => setCurrentMenu("home")} style={{ width: "100%", padding: "10px 14px", borderRadius: "8px", border: "none", textAlign: "left", fontWeight: "bold", background: currentMenu === "home" ? "#EEEDFE" : "transparent", color: currentMenu === "home" ? "#534AB7" : "#475569", cursor: "pointer" }}>🏠 Trang chủ</button>
             <button onClick={() => setCurrentMenu("exams")} style={{ width: "100%", padding: "10px 14px", borderRadius: "8px", border: "none", textAlign: "left", fontWeight: "bold", background: currentMenu === "exams" ? "#EEEDFE" : "transparent", color: currentMenu === "exams" ? "#534AB7" : "#475569", cursor: "pointer" }}>📄 Bài thi</button>
             <button onClick={() => setCurrentMenu("results")} style={{ width: "100%", padding: "10px 14px", borderRadius: "8px", border: "none", textAlign: "left", fontWeight: "bold", background: currentMenu === "results" ? "#EEEDFE" : "transparent", color: currentMenu === "results" ? "#534AB7" : "#475569", cursor: "pointer" }}>⭐ Kết quả</button>
           </div>
 
-          {/* LIST DROPDOWN CHỌN LỚP - MẶC ĐỊNH CHỌN TẤT CẢ CÁC LỚP ĐỂ KHÔNG BỊ GÒ BÓ */}
           <div className="class-section">
             <div style={{ fontSize: "12px", fontWeight: "bold", color: "#94A3B8", textTransform: "uppercase", marginBottom: "8px" }}>Lọc Theo Lớp Học</div>
             <select 
@@ -186,10 +192,8 @@ export default function StudentPage({ studentInfo = { hoTen: "ha quang dat" }, o
         <button onClick={onLogout} style={{ width: "100%", padding: "12px", border: "1px solid #FEECEB", background: "#FEECEB", color: "#A32D2D", borderRadius: "8px", fontWeight: "bold", cursor: "pointer" }}>🚪 Đăng xuất</button>
       </div>
 
-      {/* 2. KHU VỰC NỘI DUNG CHÍNH (BÊN PHẢI) */}
       <div className="main-content" style={{ flex: 1, padding: "30px 40px" }}>
         
-        {/* Tiêu đề trang con */}
         <div className="info-header" style={{ marginBottom: "25px" }}>
           <h2 style={{ margin: 0, fontSize: "22px", color: "#2C3E50" }}>
             {currentMenu === "home" && "🏠 Trang Chủ Hệ Thống"}
@@ -201,7 +205,6 @@ export default function StudentPage({ studentInfo = { hoTen: "ha quang dat" }, o
           </div>
         </div>
 
-        {/* 4 Thẻ thống kê màu sắc nguyên bản */}
         <div className="stats-grid" style={{ display: "flex", gap: "15px", marginBottom: "25px" }}>
           <div style={{ flex: 1, background: "white", padding: "20px", borderRadius: "16px", border: "1px solid #E2E8F0" }}>
             <div style={{ fontSize: "20px" }}>📝</div>
@@ -231,7 +234,6 @@ export default function StudentPage({ studentInfo = { hoTen: "ha quang dat" }, o
           </div>
         </div>
 
-        {/* MÀN HÌNH 1: TRANG CHỦ (CHỈ HIỆN CÁC BÀI ĐANG CÓ THỂ LÀM) */}
         {currentMenu === "home" && (
           <div className="exam-card-container" style={{ background: "white", padding: "24px", borderRadius: "16px", border: "1px solid #E2E8F0" }}>
             <h3 style={{ margin: "0 0 20px 0", fontSize: "15px", color: "#2C3E50" }}>🔥 Các bài làm đang mở khả dụng ({getLopName(selectedClassId)})</h3>
@@ -254,8 +256,7 @@ export default function StudentPage({ studentInfo = { hoTen: "ha quang dat" }, o
                         </div>
                       </div>
                     </div>
-                    {/* ĐÃ TÍCH HỢP HÀM RANDOM KHI BẤM NÚT */}
-                    <button onClick={() => handleStartExamWithRandom(exam.maBaiThi)} style={{ padding: "8px 16px", borderRadius: "8px", border: "none", fontWeight: "bold", fontSize: "13px", background: "#534AB7", color: "white", cursor: "pointer" }}>Làm bài →</button>
+                    <button onClick={() => handleStartExamWithRandom(exam)} style={{ padding: "8px 16px", borderRadius: "8px", border: "none", fontWeight: "bold", fontSize: "13px", background: "#534AB7", color: "white", cursor: "pointer" }}>Làm bài →</button>
                   </div>
                 ))
               )}
@@ -263,11 +264,8 @@ export default function StudentPage({ studentInfo = { hoTen: "ha quang dat" }, o
           </div>
         )}
 
-        {/* MÀN HÌNH 2: TRUNG TÂM BÀI THI (ĐANG DIỄN RA, HẾT HẠN, VÔ HẠN) */}
         {currentMenu === "exams" && (
           <div className="exam-card-container" style={{ background: "white", padding: "24px", borderRadius: "16px", border: "1px solid #E2E8F0" }}>
-            
-            {/* Bộ lọc trạng thái đề */}
             <div style={{ display: "flex", gap: "10px", marginBottom: "20px", borderBottom: "1px solid #E2E8F0", paddingBottom: "12px" }}>
               <button onClick={() => setExamFilter("all")} style={{ padding: "8px 14px", borderRadius: "6px", border: "none", fontWeight: "bold", cursor: "pointer", background: examFilter === "all" ? "#534AB7" : "#F1F5F9", color: examFilter === "all" ? "white" : "#475569" }}>Tất cả bài</button>
               <button onClick={() => setExamFilter("OPEN")} style={{ padding: "8px 14px", borderRadius: "6px", border: "none", fontWeight: "bold", cursor: "pointer", background: examFilter === "OPEN" ? "#0F6E56" : "#E1F5EE", color: examFilter === "OPEN" ? "white" : "#0F6E56" }}>🟢 Đang diễn ra</button>
@@ -303,7 +301,7 @@ export default function StudentPage({ studentInfo = { hoTen: "ha quang dat" }, o
 
                         <button
                           disabled={status !== "OPEN" && status !== "INFINITE"}
-                          onClick={() => handleStartExamWithRandom(exam.maBaiThi)}
+                          onClick={() => handleStartExamWithRandom(exam)}
                           style={{
                             padding: "8px 16px", borderRadius: "8px", border: "none", fontWeight: "bold", fontSize: "13px", cursor: (status === "OPEN" || status === "INFINITE") ? "pointer" : "not-allowed",
                             background: (status === "OPEN" || status === "INFINITE") ? "#534AB7" : "#E2E8F0",
@@ -321,36 +319,41 @@ export default function StudentPage({ studentInfo = { hoTen: "ha quang dat" }, o
           </div>
         )}
 
-        {/* MÀN HÌNH 3: PHẦN KẾT QUẢ / LỊCH SỬ LÀM BÀI CÁ NHÂN */}
         {currentMenu === "results" && (
           <div className="exam-card-container" style={{ background: "white", padding: "24px", borderRadius: "16px", border: "1px solid #E2E8F0" }}>
             <h3 style={{ margin: "0 0 15px 0", fontSize: "15px", color: "#2C3E50" }}>🎓 Kết quả & Điểm số cá nhân đạt được</h3>
-            <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
-              <thead>
-                <tr style={{ borderBottom: "2px solid #EEEDFE", color: "#534AB7" }}>
-                  <th style={{ padding: "12px 8px" }}>Mã đề</th>
-                  <th style={{ padding: "12px 8px" }}>Tên đề kiểm tra</th>
-                  <th style={{ padding: "12px 8px" }}>Môn học</th>
-                  <th style={{ padding: "12px 8px" }}>Thời lượng</th>
-                  <th style={{ padding: "12px 8px" }}>Ngày nộp bài</th>
-                  <th style={{ padding: "12px 8px" }}>Kết quả điểm</th>
-                </tr>
-              </thead>
-              <tbody>
-                {historyExams.map((history, idx) => (
-                  <tr key={idx} style={{ borderBottom: "1px solid #F1F5F9" }}>
-                    <td style={{ padding: "14px 8px", fontWeight: "bold", color: "#64748B" }}>#{history.maBaiThi}</td>
-                    <td style={{ padding: "14px 8px", fontWeight: "700", color: "#2C3E50" }}>{history.tenBaiThi}</td>
-                    <td style={{ padding: "14px 8px" }}>{getMonHocName(history.maMonThi)}</td>
-                    <td style={{ padding: "14px 8px" }}>{history.thoiLuong} phút</td>
-                    <td style={{ padding: "14px 8px", color: "#64748B" }}>{history.ngayNop}</td>
-                    <td style={{ padding: "14px 8px", fontWeight: "900", fontSize: "16px", color: history.diem >= 5 ? "#0F6E56" : "#A32D2D" }}>
-                      {history.diem} / 10đ
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            {historyExams.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "40px", color: "#94A3B8", fontStyle: "italic" }}>
+                  {loading ? "⏳ Đang tải lịch sử điểm..." : "Chưa có bài thi nào được hoàn thành"}
+                </div>
+            ) : (
+                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
+                <thead>
+                    <tr style={{ borderBottom: "2px solid #EEEDFE", color: "#534AB7" }}>
+                    <th style={{ padding: "12px 8px" }}>Mã đề</th>
+                    <th style={{ padding: "12px 8px" }}>Tên đề kiểm tra</th>
+                    <th style={{ padding: "12px 8px" }}>Môn học</th>
+                    <th style={{ padding: "12px 8px" }}>Thời lượng</th>
+                    <th style={{ padding: "12px 8px" }}>Ngày nộp bài</th>
+                    <th style={{ padding: "12px 8px" }}>Kết quả điểm</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {historyExams.map((history, idx) => (
+                    <tr key={idx} style={{ borderBottom: "1px solid #F1F5F9" }}>
+                        <td style={{ padding: "14px 8px", fontWeight: "bold", color: "#64748B" }}>#{history.maBaiThi}</td>
+                        <td style={{ padding: "14px 8px", fontWeight: "700", color: "#2C3E50" }}>{history.tenBaiThi}</td>
+                        <td style={{ padding: "14px 8px" }}>{getMonHocName(history.maMonThi)}</td>
+                        <td style={{ padding: "14px 8px" }}>{history.thoiLuong || 0} phút</td>
+                        <td style={{ padding: "14px 8px", color: "#64748B" }}>{history.ngayNop}</td>
+                        <td style={{ padding: "14px 8px", fontWeight: "900", fontSize: "16px", color: history.diem >= 5 ? "#0F6E56" : "#A32D2D" }}>
+                        {history.diem} / 10đ
+                        </td>
+                    </tr>
+                    ))}
+                </tbody>
+                </table>
+            )}
           </div>
         )}
 

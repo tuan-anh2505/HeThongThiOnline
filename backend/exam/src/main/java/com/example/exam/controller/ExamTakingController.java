@@ -51,7 +51,7 @@ public class ExamTakingController {
 
             return ResponseEntity.ok(baiLam);
         } catch (Exception e) {
-            e.printStackTrace(); // IN LỖI RA CONSOLE ĐỂ DEBUG
+            e.printStackTrace(); 
             return ResponseEntity.badRequest().body("Lỗi tạo phiên thi: " + e.getMessage());
         }
     }
@@ -176,6 +176,33 @@ public class ExamTakingController {
             if (sv != null) maSinhVien = sv.getMaSinhVien();
         }
         return ResponseEntity.ok(baiLamService.getRemainingTimeSeconds(maBaiThi, maSinhVien));
+    }
+
+    @GetMapping("/history")
+    public ResponseEntity<?> getStudentHistory(@RequestHeader("Authorization") String token) {
+        try {
+            SinhVien sinhVien = resolveCurrentStudent(token);
+            if (sinhVien == null) {
+                return ResponseEntity.status(401).body("Lỗi: Không tìm thấy Sinh viên từ Token");
+            }
+            
+            List<BaiLam> history = baiLamService.getBaiLamByMaSinhVien(sinhVien.getMaSinhVien());
+            return ResponseEntity.ok(history);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("Lỗi lấy lịch sử: " + e.getMessage());
+        }
+    }
+
+    // ── API MỚI: TRẢ VỀ TOÀN BỘ BÀI LÀM CHO MÀN HÌNH QUẢN LÝ CỦA GIẢNG VIÊN ──
+    @GetMapping("/teacher/all-submissions")
+    public ResponseEntity<?> getAllSubmissionsForTeacher() {
+        try {
+            List<BaiLam> allBaiLam = baiLamService.getAllBaiLam();
+            return ResponseEntity.ok(allBaiLam);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Lỗi lấy danh sách bài làm hệ thống: " + e.getMessage());
+        }
     }
 
     private SinhVien resolveCurrentStudent(String token) {

@@ -1,70 +1,35 @@
 import { useEffect, useRef, useState } from "react";
-import { getExams, createExam, updateExam, deleteExam, getAnalytics } from "../services/api";
+import { getExams, createExam, updateExam, deleteExam, getAnalytics, getAllUsers } from "../services/api";
 import QuestionBankPage from "./QuestionBankPage"; 
 
 const THEME_COLORS = {
-  primary: "#0F8A6E",
-  primary2: "#065C49",
-  border: "#B2E0D4",
-  bg: "#F0FBF8",
-  light: "#E6F7F3",
-  accent: "#D4930A",
-  danger: "#D32F2F",
-  blue: "#185ADB"
+  primary: "#0F8A6E", primary2: "#065C49", border: "#B2E0D4",
+  bg: "#F0FBF8", light: "#E6F7F3", accent: "#D4930A",
+  danger: "#D32F2F", blue: "#185ADB"
 };
 
-// ==========================================
-// TỪ ĐIỂN MAP: MÔN HỌC CHUẨN
-// ==========================================
 const MOCK_MON_HOC = [
-  { id: 1, name: "Lập trình mạng" },
-  { id: 2, name: "Cơ sở dữ liệu" },
-  { id: 3, name: "Triết học Mác-Lênin" },
-  { id: 4, name: "Tư tưởng Hồ Chí Minh" },
-  { id: 5, name: "Lập trình Web" },
-  { id: 6, name: "Lập trình C/C++" },
-  { id: 7, name: "Java cơ bản" }
+  { id: 1, name: "Lập trình mạng" }, { id: 2, name: "Cơ sở dữ liệu" },
+  { id: 3, name: "Triết học Mác-Lênin" }, { id: 4, name: "Tư tưởng Hồ Chí Minh" },
+  { id: 5, name: "Lập trình Web" }, { id: 6, name: "Lập trình C/C++" }, { id: 7, name: "Java cơ bản" }
 ];
 
-// ĐÃ CẬP NHẬT CHUẨN 9 LỚP THEO YÊU CẦU
 const MOCK_LOP = [
-  { id: 1, name: "TTM63" },
-  { id: 2, name: "TTM64" },
-  { id: 3, name: "TTMN65" },
-  { id: 4, name: "KPM63" },
-  { id: 5, name: "KPM64" },
-  { id: 6, name: "KPM65" },
-  { id: 7, name: "CNTT63" },
-  { id: 8, name: "CNTT64" },
-  { id: 9, name: "CNTT65" }
+  { id: 1, name: "TTM63" }, { id: 2, name: "TTM64" }, { id: 3, name: "TTMN65" },
+  { id: 4, name: "KPM63" }, { id: 5, name: "KPM64" }, { id: 6, name: "KPM65" },
+  { id: 7, name: "CNTT63" }, { id: 8, name: "CNTT64" }, { id: 9, name: "CNTT65" }
 ];
 
 const MOCK_CA_THI_ARRAY = [
-  { id: 1, name: "Ca 1 (07:00 - 09:00)" },
-  { id: 2, name: "Ca 2 (09:30 - 11:30)" },
-  { id: 3, name: "Ca 3 (13:00 - 15:00)" },
-  { id: 4, name: "Ca 4 (15:30 - 17:30)" },
-  { id: 5, name: "Vô thời hạn (Đề ôn tập)" },
-  { id: 6, name: "⏱️ Tùy chỉnh (Tự chọn ngày giờ)..." }
+  { id: 1, name: "Ca 1 (07:00 - 09:00)" }, { id: 2, name: "Ca 2 (09:30 - 11:30)" },
+  { id: 3, name: "Ca 3 (13:00 - 15:00)" }, { id: 4, name: "Ca 4 (15:30 - 17:30)" },
+  { id: 5, name: "Vô thời hạn (Đề ôn tập)" }, { id: 6, name: "⏱️ Tùy chỉnh (Tự chọn ngày giờ)..." }
 ];
 
 const MOCK_NGAN_HANG = [
-  { id: 6, name: "Ngân hàng Lập trình mạng" },
-  { id: 7, name: "Ngân hàng Cơ sở dữ liệu" },
-  { id: 8, name: "Ngân hàng Triết học" },
-  { id: 9, name: "Ngân hàng Tư tưởng HCM" },
-  { id: 10, name: "Ngân hàng Lập trình Web" },
-  { id: 11, name: "Ngân hàng Lập trình C" },
-  { id: 12, name: "Ngân hàng Java cơ bản" }
-];
-
-// DỮ LIỆU MOCK GIẢ LẬP TIẾN ĐỘ VÀ ĐIỂM SỐ CỦA SINH VIÊN
-const INITIAL_STUDENTS_EXAMS = [
-  { maSV: "SV001", hoTen: "Lê Văn An", maLop: 1, tenBaiThi: "Kiểm tra Giữa kỳ CSDL", trangThai: "done", diem: 8.5 },
-  { maSV: "SV002", hoTen: "Phạm Thị Bình", maLop: 1, tenBaiThi: "Kiểm tra Giữa kỳ CSDL", trangThai: "doing", diem: null },
-  { maSV: "SV003", hoTen: "Hoàng Văn Cường", maLop: 2, tenBaiThi: "Thi cuối kỳ Lập trình Web", trangThai: "expired", diem: 0 },
-  { maSV: "SV004", hoTen: "Trần Đức Duy", maLop: 4, tenBaiThi: "Kiểm tra Giữa kỳ CSDL", trangThai: "done", diem: 4.5 },
-  { maSV: "SV005", hoTen: "Nguyễn Thị Em", maLop: 7, tenBaiThi: "Thi Tư tưởng HCM", trangThai: "doing", diem: null }
+  { id: 6, name: "Ngân hàng Lập trình mạng" }, { id: 7, name: "Ngân hàng Cơ sở dữ liệu" },
+  { id: 8, name: "Ngân hàng Triết học" }, { id: 9, name: "Ngân hàng Tư tưởng HCM" },
+  { id: 10, name: "Ngân hàng Lập trình Web" }, { id: 11, name: "Ngân hàng Lập trình C" }, { id: 12, name: "Ngân hàng Java cơ bản" }
 ];
 
 const getTenMonHoc = (id) => MOCK_MON_HOC.find(m => m.id === id)?.name || `Môn ID: ${id}`;
@@ -72,7 +37,7 @@ const getTenLop = (id) => MOCK_LOP.find(m => m.id === id)?.name || `Lớp ID: ${
 const getTenCaThi = (id) => MOCK_CA_THI_ARRAY.find(m => m.id === id)?.name || `Ca ID: ${id}`;
 
 export default function TeacherPage({ onLogout }) {
-  const [currentScreen, setCurrentScreen] = useState("exams"); // exams | students | questionBank
+  const [currentScreen, setCurrentScreen] = useState("exams"); 
   const [exams, setExams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -81,8 +46,8 @@ export default function TeacherPage({ onLogout }) {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingExam, setEditingExam] = useState(null);
 
-  // Quản lý danh sách tiến độ làm bài sinh viên
-  const [studentsExams, setStudentsExams] = useState(INITIAL_STUDENTS_EXAMS);
+  // Mảng rỗng chờ nhận Dữ liệu Thật từ Backend
+  const [studentsExams, setStudentsExams] = useState([]);
   const [selectedClassFilter, setSelectedClassFilter] = useState("all");
   const [selectedStatusFilter, setSelectedStatusFilter] = useState("all");
 
@@ -90,18 +55,52 @@ export default function TeacherPage({ onLogout }) {
     tenBaiThi: "", maMonThi: 1, maLop: 1, maCaThi: 1, maNganHang: 6, thoiLuong: 60, gioBatDau: "", gioKetThuc: ""
   });
 
+  // TẢI DANH SÁCH ĐỀ THI
   useEffect(() => {
     getExams()
       .then((data) => {
         const sorted = (data || []).sort((a, b) => (b.maBaiThi || 0) - (a.maBaiThi || 0));
         setExams(sorted);
       })
-      .catch((err) => {
-        setError("Không thể tải dữ liệu tự động. Hệ thống đang chạy trên dữ liệu an toàn.");
-        setExams([]);
-      })
+      .catch((err) => setError("Không thể tải dữ liệu tự động. Cần kiểm tra kết nối Backend."))
       .finally(() => setLoading(false));
   }, []);
+
+  // TẢI DANH SÁCH BÀI LÀM CỦA SINH VIÊN KHI CHUYỂN TAB
+  useEffect(() => {
+    if (currentScreen === "students") {
+      getAllUsers().then(users => {
+        const usersList = Array.isArray(users) ? users : [];
+
+        // Gọi API lấy toàn bộ bài làm
+        fetch("http://localhost:8080/api/exam-taking/teacher/all-submissions", {
+          headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
+        })
+        .then(res => res.json())
+        .then(baiLams => {
+          if (Array.isArray(baiLams)) {
+            // Ánh xạ (Map) dữ liệu mã sinh viên thành Tên Thật
+            const mappedData = baiLams.map(bl => {
+              const examDetails = exams.find(e => e.maBaiThi === bl.maBaiThi) || {};
+              const userDetails = usersList.find(u => u.maTaiKhoan === bl.maSinhVien || u.maSinhVien === bl.maSinhVien) || {};
+
+              return {
+                maSV: userDetails.tenDangNhap || `SV${String(bl.maSinhVien).padStart(3, '0')}`,
+                hoTen: userDetails.hoTen || `Sinh Viên (ID: ${bl.maSinhVien})`,
+                maLop: examDetails.maLop || 1,
+                tenBaiThi: examDetails.tenBaiThi || `Bài thi số #${bl.maBaiThi}`,
+                trangThai: bl.thoiGianNop ? "done" : "doing",
+                diem: bl.diemTong !== null ? bl.diemTong : null
+              };
+            });
+            // Đảo ngược mảng để bài nộp mới nhất lên đầu
+            setStudentsExams(mappedData.reverse());
+          }
+        })
+        .catch(err => console.error("API lấy bài làm chưa sẵn sàng", err));
+      }).catch(err => console.error("Không lấy được danh sách user"));
+    }
+  }, [currentScreen, exams]);
 
   const handleAddSubmit = (e) => {
     e.preventDefault();
@@ -109,7 +108,6 @@ export default function TeacherPage({ onLogout }) {
     const newExamTemp = { maBaiThi: tempId, ...formData, isTemp: true };
     setExams([newExamTemp, ...exams]);
     setIsAddOpen(false);
-
     createExam(formData).catch((err) => console.error(err));
   };
 
@@ -135,53 +133,33 @@ export default function TeacherPage({ onLogout }) {
     deleteExam(maBaiThi).catch((err) => console.error(err));
   };
 
-  // CÁC HÀM XỬ LÝ QUẢN LÝ SINH VIÊN
   const handleCancelExam = (maSV, tenBaiThi) => {
-    if (!window.confirm(`Bạn có chắc chắn muốn HỦY BÀI LÀM của sinh viên ${maSV} ở đề thi [${tenBaiThi}] không? Dữ liệu bài làm sẽ biến mất hoàn toàn!`)) return;
-    setStudentsExams(studentsExams.filter(s => !(s.maSV === maSV && s.tenBaiThi === tenBaiThi)));
-    alert(`✅ Đã hủy bài làm của sinh viên ${maSV} thành công.`);
+    alert(`Chức năng Hủy bài thi của SV ${maSV} đang trong quá trình nâng cấp Backend!`);
   };
 
   const handleRetakeExam = (maSV, tenBaiThi) => {
-    if (!window.confirm(`Cho phép sinh viên ${maSV} LÀM LẠI bài thi [${tenBaiThi}]. Điểm cũ sẽ bị reset!`)) return;
-    setStudentsExams(studentsExams.map(s => {
-      if (s.maSV === maSV && s.tenBaiThi === tenBaiThi) {
-        return { ...s, trangThai: "doing", diem: null };
-      }
-      return s;
-    }));
-    alert(`🔄 Kích hoạt chế độ thi lại thành công cho sinh viên ${maSV}.`);
+    alert(`Chức năng Cho phép thi lại đối với SV ${maSV} đang trong quá trình nâng cấp Backend!`);
   };
 
-  // Lọc dữ liệu sinh viên
   const filteredStudents = studentsExams.filter(s => {
     const matchClass = selectedClassFilter === "all" || s.maLop === parseInt(selectedClassFilter);
     const matchStatus = selectedStatusFilter === "all" || s.trangThai === selectedStatusFilter;
     return matchClass && matchStatus;
   });
 
-  // ĐIỀU HƯỚNG SANG NGÂN HÀNG CÂU HỎI
-  if (currentScreen === "questionBank") {
-    return <QuestionBankPage onBack={() => setCurrentScreen("exams")} />;
-  }
-
+  if (currentScreen === "questionBank") return <QuestionBankPage onBack={() => setCurrentScreen("exams")} />;
   if (loading) return <div style={S.centerWrapper}>Đang đồng bộ dữ liệu từ hệ thống...</div>;
 
   return (
     <div style={S.pageWrapper}>
       {error && <div style={S.errorBanner}>{error}</div>}
 
-      {/* THANH ĐIỀU HƯỚNG CHÍNH */}
       <header style={S.headerRow}>
         <div style={{ display: "flex", gap: "20px", alignItems: "center" }}>
           <h1 style={S.mainTitle}>Hệ Thống Quản Lý </h1>
           <nav style={{ display: "flex", gap: "10px", marginLeft: "20px" }}>
-            <button onClick={() => setCurrentScreen("exams")} style={{ ...S.navTab, background: currentScreen === "exams" ? THEME_COLORS.primary : "transparent", color: currentScreen === "exams" ? "white" : THEME_COLORS.primary2 }}>
-              📝 Quản lý Bài Thi
-            </button>
-            <button onClick={() => setCurrentScreen("students")} style={{ ...S.navTab, background: currentScreen === "students" ? THEME_COLORS.primary : "transparent", color: currentScreen === "students" ? "white" : THEME_COLORS.primary2 }}>
-              👥 Quản lý Sinh Viên & Điểm
-            </button>
+            <button onClick={() => setCurrentScreen("exams")} style={{ ...S.navTab, background: currentScreen === "exams" ? THEME_COLORS.primary : "transparent", color: currentScreen === "exams" ? "white" : THEME_COLORS.primary2 }}>📝 Quản lý Bài Thi</button>
+            <button onClick={() => setCurrentScreen("students")} style={{ ...S.navTab, background: currentScreen === "students" ? THEME_COLORS.primary : "transparent", color: currentScreen === "students" ? "white" : THEME_COLORS.primary2 }}>👥 Quản lý Sinh Viên & Điểm</button>
           </nav>
         </div>
         <div style={{ display: "flex", gap: 12 }}>
@@ -196,7 +174,6 @@ export default function TeacherPage({ onLogout }) {
         </div>
       </header>
 
-      {/* MÀN HÌNH 1: QUẢN LÝ BÀI THI */}
       {currentScreen === "exams" && (
         <div style={S.tableContainer}>
           <table style={S.table}>
@@ -237,10 +214,8 @@ export default function TeacherPage({ onLogout }) {
         </div>
       )}
 
-      {/* MÀN HÌNH 2: MODULE QUẢN LÝ TIẾN ĐỘ SINH VIÊN & ĐIỂM SỐ */}
       {currentScreen === "students" && (
         <div>
-          {/* THANH ĐIỀU KHIỂN BỘ LỌC TÍCH HỢP */}
           <div style={S.filterBar}>
             <div style={{ display: "flex", gap: "15px", alignItems: "center" }}>
               <div>
@@ -250,23 +225,18 @@ export default function TeacherPage({ onLogout }) {
                   {MOCK_LOP.map(l => <option key={l.id} value={l.id}>Lớp {l.name}</option>)}
                 </select>
               </div>
-
               <div>
                 <label style={S.filterLabel}>Trạng thái thi làm bài:</label>
                 <select value={selectedStatusFilter} onChange={(e) => setSelectedStatusFilter(e.target.value)} style={S.selectFilter}>
                   <option value="all">🔍 Tất cả trạng thái</option>
                   <option value="doing">🟡 Đang làm bài</option>
                   <option value="done">🟢 Đã nộp bài (Có điểm)</option>
-                  <option value="expired">🔴 Quá hạn / Vi phạm</option>
                 </select>
               </div>
             </div>
-            <div style={{ fontWeight: "bold", color: THEME_COLORS.primary2 }}>
-              Tìm thấy: {filteredStudents.length} kết quả dữ liệu
-            </div>
+            <div style={{ fontWeight: "bold", color: THEME_COLORS.primary2 }}>Tìm thấy: {filteredStudents.length} dữ liệu bài làm</div>
           </div>
 
-          {/* BẢNG TIẾN ĐỘ SINH VIÊN */}
           <div style={S.tableContainer}>
             <table style={S.table}>
               <thead>
@@ -277,12 +247,12 @@ export default function TeacherPage({ onLogout }) {
                   <th style={S.th}>Bài kiểm tra thực hiện</th>
                   <th style={S.th}>Trạng thái thời gian thực</th>
                   <th style={S.th}>Điểm số (/10)</th>
-                  <th style={{ ...S.th, textAlign: "center" }}>Quyền điều phối bài làm</th>
+                  <th style={{ ...S.th, textAlign: "center" }}>Quyền điều phối</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredStudents.length === 0 ? (
-                  <tr><td colSpan="7" style={{ ...S.td, textAlign: "center", padding: 30, color: "#888" }}>Không tìm thấy sinh viên nào khớp với bộ lọc điều kiện.</td></tr>
+                  <tr><td colSpan="7" style={{ ...S.td, textAlign: "center", padding: 30, color: "#888" }}>Chưa có sinh viên nào làm bài thi trên hệ thống.</td></tr>
                 ) : (
                   filteredStudents.map((student, idx) => (
                     <tr key={idx} style={S.tr}>
@@ -293,19 +263,14 @@ export default function TeacherPage({ onLogout }) {
                       <td style={S.td}>
                         {student.trangThai === "doing" && <span style={{ ...S.statusTag, background: "#FFF7E6", color: "#E28E00" }}>● Đang tiến hành làm bài</span>}
                         {student.trangThai === "done" && <span style={{ ...S.statusTag, background: "#E6F7F3", color: "#0F8A6E" }}>✓ Đã nộp bài thi</span>}
-                        {student.trangThai === "expired" && <span style={{ ...S.statusTag, background: "#FEECEB", color: "#D32F2F" }}>🖏 Đã quá hạn giờ</span>}
                       </td>
-                      <td style={{ ...S.td, fontWeight: "bold", fontSize: "15px" }}>
+                      <td style={{ ...S.td, fontWeight: "bold", fontSize: "15px", color: student.diem >= 5 ? "#0F8A6E" : "#D32F2F" }}>
                         {student.diem !== null ? `${student.diem} đ` : "—"}
                       </td>
                       <td style={{ ...S.td, textAlign: "center" }}>
                         <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
-                          <button onClick={() => handleRetakeExam(student.maSV, student.tenBaiThi)} style={{ ...S.actionBtn, background: "#E8F5E9", color: "#2E7D32" }} title="Reset trạng thái bài thi, cho làm lại bài mới">
-                            🔄 Cho làm lại
-                          </button>
-                          <button onClick={() => handleCancelExam(student.maSV, student.tenBaiThi)} style={{ ...S.actionBtn, background: "#FEECEB", color: "#C62828" }} title="Hủy bỏ kết quả phiên thi hiện tại">
-                            🚫 Hủy bài làm
-                          </button>
+                          <button onClick={() => handleRetakeExam(student.maSV, student.tenBaiThi)} style={{ ...S.actionBtn, background: "#E8F5E9", color: "#2E7D32" }}>🔄 Cho làm lại</button>
+                          <button onClick={() => handleCancelExam(student.maSV, student.tenBaiThi)} style={{ ...S.actionBtn, background: "#FEECEB", color: "#C62828" }}>🚫 Hủy bài làm</button>
                         </div>
                       </td>
                     </tr>
@@ -324,7 +289,6 @@ export default function TeacherPage({ onLogout }) {
             <h2 style={S.modalTitle}>➕ Khởi tạo đề thi mới</h2>
             <form onSubmit={handleAddSubmit} style={S.form}>
               <div style={S.formGroup}><label style={S.label}>Tên đề kiểm tra:</label><input type="text" required style={S.input} value={formData.tenBaiThi} onChange={(e) => setFormData({ ...formData, tenBaiThi: e.target.value })} placeholder="Ví dụ: Kiểm tra giữa kỳ..." /></div>
-              
               <div style={S.formGrid}>
                 <div style={S.formGroup}>
                   <label style={S.label}>Môn học:</label>
@@ -339,7 +303,6 @@ export default function TeacherPage({ onLogout }) {
                   </select>
                 </div>
               </div>
-
               <div style={S.formGrid}>
                 <div style={S.formGroup}>
                   <label style={S.label}>Ca thi phân phối:</label>
@@ -354,22 +317,13 @@ export default function TeacherPage({ onLogout }) {
                   </select>
                 </div>
               </div>
-
               {formData.maCaThi === 6 && (
                 <div style={{ ...S.formGrid, background: "#E8F5E9", padding: "12px", borderRadius: "8px", border: "1px dashed #A5D6A7" }}>
-                  <div style={S.formGroup}>
-                    <label style={S.label}>Mở mạng lúc:</label>
-                    <input type="datetime-local" required style={S.input} value={formData.gioBatDau} onChange={(e) => setFormData({...formData, gioBatDau: e.target.value})} />
-                  </div>
-                  <div style={S.formGroup}>
-                    <label style={S.label}>Khóa mạng lúc:</label>
-                    <input type="datetime-local" required style={S.input} value={formData.gioKetThuc} onChange={(e) => setFormData({...formData, gioKetThuc: e.target.value})} />
-                  </div>
+                  <div style={S.formGroup}><label style={S.label}>Mở lúc:</label><input type="datetime-local" required style={S.input} value={formData.gioBatDau} onChange={(e) => setFormData({...formData, gioBatDau: e.target.value})} /></div>
+                  <div style={S.formGroup}><label style={S.label}>Khóa lúc:</label><input type="datetime-local" required style={S.input} value={formData.gioKetThuc} onChange={(e) => setFormData({...formData, gioKetThuc: e.target.value})} /></div>
                 </div>
               )}
-
               <div style={S.formGroup}><label style={S.label}>Thời gian làm (phút):</label><input type="number" required min="1" style={S.input} value={formData.thoiLuong} onChange={(e) => setFormData({ ...formData, thoiLuong: parseInt(e.target.value) || 60 })} /></div>
-              
               <div style={S.modalActions}>
                 <button type="button" style={S.cancelBtn} onClick={() => setIsAddOpen(false)}>Hủy</button>
                 <button type="submit" style={S.submitBtn}>Tạo đề thi</button>
@@ -386,7 +340,6 @@ export default function TeacherPage({ onLogout }) {
             <h2 style={S.modalTitle}>📝 Chỉnh sửa cấu hình đề thi</h2>
             <form onSubmit={handleEditSubmit} style={S.form}>
               <div style={S.formGroup}><label style={S.label}>Tên đề kiểm tra:</label><input type="text" required style={S.input} value={formData.tenBaiThi} onChange={(e) => setFormData({ ...formData, tenBaiThi: e.target.value })} /></div>
-              
               <div style={S.formGrid}>
                 <div style={S.formGroup}>
                   <label style={S.label}>Môn học:</label>
@@ -401,7 +354,6 @@ export default function TeacherPage({ onLogout }) {
                   </select>
                 </div>
               </div>
-
               <div style={S.formGrid}>
                 <div style={S.formGroup}>
                   <label style={S.label}>Ca thi phân phối:</label>
@@ -416,9 +368,7 @@ export default function TeacherPage({ onLogout }) {
                   </select>
                 </div>
               </div>
-
               <div style={S.formGroup}><label style={S.label}>Thời gian làm (phút):</label><input type="number" required min="1" style={S.input} value={formData.thoiLuong} onChange={(e) => setFormData({ ...formData, thoiLuong: parseInt(e.target.value) || 60 })} /></div>
-              
               <div style={S.modalActions}>
                 <button type="button" style={S.cancelBtn} onClick={() => { setIsEditOpen(false); setEditingExam(null); }}>Hủy bỏ</button>
                 <button type="submit" style={S.submitBtn}>Lưu thay đổi</button>
