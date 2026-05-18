@@ -13,14 +13,7 @@ import com.example.exam.service.SinhVienService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -40,12 +33,15 @@ public class ExamTakingController {
     private final SimpMessagingTemplate messagingTemplate;
 
     @PostMapping("/start/{maBaiThi}")
-    public ResponseEntity<BaiLam> startExamForCurrentStudent(
+    public ResponseEntity<?> startExamForCurrentStudent(
             @PathVariable Integer maBaiThi,
             @RequestHeader(value = "X-IP-Address", required = false) String ipAddress,
             @RequestHeader("Authorization") String token) {
         try {
             SinhVien sinhVien = resolveCurrentStudent(token);
+            if (sinhVien == null) {
+                return ResponseEntity.status(401).body("Lỗi: Không tìm thấy Sinh viên từ Token");
+            }
             BaiLam baiLam = baiLamService.startExam(sinhVien.getMaSinhVien(), maBaiThi);
             loggingService.logExamStart(sinhVien.getMaTaiKhoan(), maBaiThi, ipAddress != null ? ipAddress : "");
 
@@ -55,12 +51,13 @@ public class ExamTakingController {
 
             return ResponseEntity.ok(baiLam);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(null);
+            e.printStackTrace(); // IN LỖI RA CONSOLE ĐỂ DEBUG
+            return ResponseEntity.badRequest().body("Lỗi tạo phiên thi: " + e.getMessage());
         }
     }
 
     @PostMapping("/start/{maBaiThi}/{maSinhVien}")
-    public ResponseEntity<BaiLam> startExam(
+    public ResponseEntity<?> startExam(
             @PathVariable Integer maBaiThi,
             @PathVariable Integer maSinhVien,
             @RequestHeader(value = "X-IP-Address", required = false) String ipAddress,
@@ -79,7 +76,8 @@ public class ExamTakingController {
 
             return ResponseEntity.ok(baiLam);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(null);
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("Lỗi tạo phiên thi: " + e.getMessage());
         }
     }
 
@@ -89,7 +87,7 @@ public class ExamTakingController {
     }
 
     @PostMapping("/submit/{maBaiLam}")
-    public ResponseEntity<BaiLam> submitExam(
+    public ResponseEntity<?> submitExam(
             @PathVariable Integer maBaiLam,
             @RequestBody SubmitExamRequest request,
             @RequestHeader(value = "X-User-ID", required = false) Integer maTaiKhoan,
@@ -107,7 +105,8 @@ public class ExamTakingController {
 
             return ResponseEntity.ok(submittedExam);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(null);
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("Lỗi nộp bài: " + e.getMessage());
         }
     }
 
@@ -116,6 +115,7 @@ public class ExamTakingController {
             @PathVariable Integer maBaiThi,
             @RequestHeader("Authorization") String token) {
         SinhVien sinhVien = resolveCurrentStudent(token);
+        if (sinhVien == null) return ResponseEntity.notFound().build();
         return baiLamService.getSubmittedExam(maBaiThi, sinhVien.getMaSinhVien())
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -135,6 +135,7 @@ public class ExamTakingController {
             @PathVariable Integer maBaiThi,
             @RequestHeader("Authorization") String token) {
         SinhVien sinhVien = resolveCurrentStudent(token);
+        if (sinhVien == null) return ResponseEntity.ok(false);
         return ResponseEntity.ok(baiLamService.hasStudentSubmittedExam(maBaiThi, sinhVien.getMaSinhVien()));
     }
 
@@ -143,7 +144,11 @@ public class ExamTakingController {
             @PathVariable Integer maBaiThi,
             @PathVariable Integer maSinhVien,
             @RequestHeader(value = "Authorization", required = false) String token) {
-        Integer resolvedMaSinhVien = token != null ? resolveCurrentStudent(token).getMaSinhVien() : maSinhVien;
+        Integer resolvedMaSinhVien = maSinhVien;
+        if (token != null) {
+            SinhVien sv = resolveCurrentStudent(token);
+            if (sv != null) resolvedMaSinhVien = sv.getMaSinhVien();
+        }
         return ResponseEntity.ok(baiLamService.hasStudentSubmittedExam(maBaiThi, resolvedMaSinhVien));
     }
 
@@ -167,13 +172,20 @@ public class ExamTakingController {
             @RequestHeader(value = "Authorization", required = false) String token) {
         Integer maSinhVien = null;
         if (token != null && !token.isBlank()) {
-            maSinhVien = resolveCurrentStudent(token).getMaSinhVien();
+            SinhVien sv = resolveCurrentStudent(token);
+            if (sv != null) maSinhVien = sv.getMaSinhVien();
         }
         return ResponseEntity.ok(baiLamService.getRemainingTimeSeconds(maBaiThi, maSinhVien));
     }
 
     private SinhVien resolveCurrentStudent(String token) {
-        String username = tokenUtil.extractUsernameFromAuthHeader(token);
-        return sinhVienService.getSinhVienByUsername(username);
+        try {
+            if (token == null || !token.startsWith("Bearer ")) return null;
+            String username = tokenUtil.extractUsernameFromAuthHeader(token);
+            return sinhVienService.getSinhVienByUsername(username);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 }

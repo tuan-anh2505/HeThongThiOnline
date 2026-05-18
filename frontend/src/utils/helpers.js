@@ -4,15 +4,12 @@
 // ============================================================
 
 // ── Format thời gian ─────────────────────────────────────
-
-/** 2700 giây → "45:00" */
 export function formatCountdown(totalSeconds) {
   const m = Math.floor(totalSeconds / 60);
   const s = totalSeconds % 60;
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-/** "2026-05-16T07:30:00" → "07:30 16/05/2026" */
 export function formatDateTime(isoString) {
   if (!isoString) return "—";
   const d = new Date(isoString);
@@ -22,14 +19,12 @@ export function formatDateTime(isoString) {
   });
 }
 
-/** Ngày hiện tại dạng "Thứ Sáu, 16/05/2026" */
 export function formatToday() {
   return new Date().toLocaleDateString("vi-VN", {
     weekday: "long", day: "numeric", month: "numeric", year: "numeric",
   });
 }
 
-/** Kiểm tra bài thi còn hạn không dựa vào gioBatDau/gioKetThuc */
 export function isBaiThiConHan(baiThi) {
   if (!baiThi?.gioKetThuc) return !!baiThi?.conHan;
   const now = new Date();
@@ -38,51 +33,46 @@ export function isBaiThiConHan(baiThi) {
 }
 
 // ── Chấm điểm tự động ────────────────────────────────────
-
-/**
- * Tính điểm cho 1 câu hỏi dựa trên câu trả lời
- * @param {object} q   - CauHoi object từ backend
- * @param {any}    ans - câu trả lời của sinh viên
- * @returns {number}   - điểm đạt được
- *
- * loaiCauHoi:
- *   1 = Trắc nghiệm (chọn 1 trong 4) → ans = maDapAn
- *   2 = Đúng/Sai                       → ans = true | false
- *   3 = Ghép từ                         → ans = { maGhep: vePhai }
- *   4 = Điền vào chỗ trống              → ans = string[]
- */
 export function gradeQuestion(q, ans) {
-  if (ans == null || ans === undefined) return 0;
+  if (ans == null || ans === undefined || ans === "") return 0;
   const maxDiem = q.diem || 1;
 
   switch (q.loaiCauHoi) {
     case 1: {
-      // Trắc nghiệm — ans là maDapAn
-      const correct = q.dapAnTracNghiem?.find((a) => a.laDapAnDung)?.maDapAn;
-      return ans === correct ? maxDiem : 0;
+      // Trắc nghiệm
+      // Cẩn thận bắt cả trường hợp DB trả về true, "true", hoặc 1
+      const correctOption = q.dapAnTracNghiem?.find(
+        (a) => a.laDapAnDung === true || a.laDapAnDung === 1 || String(a.laDapAnDung) === "true"
+      );
+      const correct = correctOption?.maDapAn;
+      
+      // ĐÃ SỬA: Ép kiểu String để chống lỗi "1" === 1
+      return String(ans) === String(correct) ? maxDiem : 0;
     }
     case 2: {
-      // Đúng/Sai — ans là boolean
-      return ans === q.dapAnDungSai?.dapAnDung ? maxDiem : 0;
+      // Đúng/Sai
+      const correct = q.dapAnDungSai?.dapAnDung;
+      // ĐÃ SỬA: Ép kiểu String
+      return String(ans) === String(correct) ? maxDiem : 0;
     }
     case 3: {
-      // Ghép từ — ans là { maGhep: vePhai, ... }
+      // Ghép từ 
       const pairs   = q.dapAnGhepTu || [];
       if (!pairs.length) return 0;
       const correct = pairs.filter(
-        (p) => (ans || {})[p.maGhep] === p.vePhai
+        (p) => String((ans || {})[p.maGhep]) === String(p.vePhai)
       ).length;
       return +((correct / pairs.length) * maxDiem).toFixed(2);
     }
     case 4: {
-      // Điền chỗ trống — ans là string[]
+      // Điền chỗ trống (Hôm trước tôi đã sửa phần này cho bạn rồi)
       const blanks  = q.dapAnDienChoTrong || [];
       if (!blanks.length) return 0;
       const filled  = ans || [];
       const correct = blanks.filter(
         (b, i) =>
-          (filled[i] || "").trim().toLowerCase() ===
-          b.tuKhoaDung.toLowerCase()
+          String(filled[i] || "").trim().toLowerCase() ===
+          String(b.tuKhoaDung || "").trim().toLowerCase()
       ).length;
       return +((correct / blanks.length) * maxDiem).toFixed(2);
     }
@@ -91,12 +81,6 @@ export function gradeQuestion(q, ans) {
   }
 }
 
-/**
- * Tính tổng điểm và điểm /10 của toàn bài
- * @param {object[]} questions
- * @param {object}   answers   { maCauHoi: answer }
- * @returns {{ tongDiem, maxDiem, diem10, tiLe }}
- */
 export function gradeExam(questions, answers) {
   const tongDiem = questions.reduce(
     (sum, q) => sum + gradeQuestion(q, answers[q.maCauHoi]),
@@ -109,15 +93,13 @@ export function gradeExam(questions, answers) {
 }
 
 // ── Màu điểm ─────────────────────────────────────────────
-/** Trả về màu hex theo thang điểm 10 */
 export function diemColor(diem10) {
-  if (diem10 >= 8.5) return "#085041"; // xanh đậm
-  if (diem10 >= 7.0) return "#534AB7"; // tím
-  if (diem10 >= 5.0) return "#633806"; // vàng
-  return "#A32D2D";                    // đỏ
+  if (diem10 >= 8.5) return "#085041"; 
+  if (diem10 >= 7.0) return "#534AB7"; 
+  if (diem10 >= 5.0) return "#633806"; 
+  return "#A32D2D";                    
 }
 
-/** Trả về label kết quả */
 export function diemLabel(diem10) {
   if (diem10 >= 8.5) return "Xuất sắc";
   if (diem10 >= 7.0) return "Khá";
@@ -163,13 +145,11 @@ export function validateUserForm(form, isNew) {
 }
 
 // ── Misc ─────────────────────────────────────────────────
-/** Truncate string */
 export function truncate(str, maxLen = 40) {
   if (!str) return "";
   return str.length > maxLen ? str.slice(0, maxLen) + "…" : str;
 }
 
-/** Tạo màu avatar từ tên */
 export function nameToGradient(name = "") {
   const colors = [
     ["#7F77DD", "#534AB7"],

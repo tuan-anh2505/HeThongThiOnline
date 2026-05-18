@@ -51,6 +51,14 @@ public class AdminService {
 
     public TaiKhoan updateUser(Integer maTaiKhoan, TaiKhoan taiKhoan) {
         return taiKhoanRepository.findById(maTaiKhoan).map(user -> {
+            if (taiKhoan.getTenDangNhap() != null && !taiKhoan.getTenDangNhap().isBlank()) {
+                // Kiểm tra tên đăng nhập mới không trùng với tài khoản khác
+                if (!taiKhoan.getTenDangNhap().equals(user.getTenDangNhap())
+                        && taiKhoanRepository.existsByTenDangNhap(taiKhoan.getTenDangNhap())) {
+                    throw new RuntimeException("Ten dang nhap da ton tai");
+                }
+                user.setTenDangNhap(taiKhoan.getTenDangNhap());
+            }
             if (taiKhoan.getHoTen() != null) {
                 user.setHoTen(taiKhoan.getHoTen());
             }

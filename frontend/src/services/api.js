@@ -15,7 +15,7 @@ export const isLoggedIn    = ()  => !!getToken();
 
 // ── Headers chung ─────────────────────────────────────────
 const headers = (extra = {}) => ({
-  "Content-Type": "application/json",
+  "Content-Type": "application/json; charset=utf-8",
   Authorization: `Bearer ${getToken()}`,
   "X-User-ID":   getMaTaiKhoan() || "",
   ...extra,
@@ -179,6 +179,26 @@ export const getAllLogs = () =>
 /** GET /api/admin/logs/:maTaiKhoan */
 export const getUserLogs = (maTaiKhoan) =>
   get(`/admin/logs/${maTaiKhoan}`, adminHeaders());
+
+// ════════════════════════════════════════════════════════════
+//  NGÂN HÀNG CÂU HỎI (GIẢNG VIÊN)
+// ════════════════════════════════════════════════════════════
+
+/** POST /api/cauhoi */
+export const createCauHoi = (data) => post("/cauhoi", data);
+
+/** GET /api/cauhoi (Lấy danh sách) */
+export const getAllCauHoi = () => get("/cauhoi");
+
+/** DELETE /api/cauhoi/:id (Xóa câu hỏi) */
+export const deleteCauHoi = (id) => del(`/cauhoi/${id}`);
+
+/** GET /api/cauhoi/:id */
+export const getCauHoiById = (id) => get(`/cauhoi/${id}`);
+
+/** PUT /api/cauhoi/:id */
+export const updateCauHoi = (id, data) => put(`/cauhoi/${id}`, data);
+
 
 // ════════════════════════════════════════════════════════════
 //  ĐỒNG BỘ BÍ DANH (ALIAS EXPORTS) CHO TEACHER PAGE NEW
