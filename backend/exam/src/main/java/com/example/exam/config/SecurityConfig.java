@@ -30,6 +30,30 @@ public class SecurityConfig {
                 .requestMatchers("/ws-exam/**").permitAll()
                 .anyRequest().authenticated())
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
+                        .requestMatchers("/api/auth/logout", "/api/auth/me").authenticated()
+                        .requestMatchers("/ws-exam/**").permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/analytics/**").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers("/api/baithi/**").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers("/api/monthi/**").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers("/api/metadata/**").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers("/api/dashboard/teacher/**").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers("/api/dashboard/student/**").hasAnyRole("STUDENT", "ADMIN")
+                        .requestMatchers("/api/exam-taking/**").hasAnyRole("STUDENT", "ADMIN")
+                        .requestMatchers("/api/files/**").hasAnyRole("TEACHER", "STUDENT", "ADMIN")
+                        .requestMatchers("/api/admin/test").hasRole("ADMIN")
+                        .requestMatchers("/api/teacher/test").hasAnyRole("TEACHER", "ADMIN")
+                        .requestMatchers("/api/student/test").hasAnyRole("STUDENT", "ADMIN")
+                        .anyRequest().authenticated())
+                .addFilterBefore(
+                        jwtFilter,
+                        UsernamePasswordAuthenticationFilter.class);
+
         return http.build();
     }
 

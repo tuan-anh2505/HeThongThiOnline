@@ -3,6 +3,7 @@ package com.example.exam.security;
 import java.io.IOException;
 import java.util.List;
 
+import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -14,7 +15,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.lang.NonNull;
 
 @Component
 @RequiredArgsConstructor
@@ -26,7 +26,8 @@ public class JwtFilter extends OncePerRequestFilter {
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
             @NonNull HttpServletResponse response,
-            @NonNull FilterChain filterChain) throws ServletException, IOException {
+            @NonNull FilterChain filterChain)
+            throws ServletException, IOException {
 
         String authHeader = request.getHeader("Authorization");
 
@@ -42,6 +43,20 @@ public class JwtFilter extends OncePerRequestFilter {
                         username,
                         null,
                         List.of(new SimpleGrantedAuthority("USER")));
+                String role = jwtUtil.extractRole(token);
+
+                String roleName = switch (role) {
+                    case "0" -> "ROLE_ADMIN";
+                    case "1" -> "ROLE_TEACHER";
+                    case "2" -> "ROLE_STUDENT";
+                    default -> "ROLE_USER";
+                };
+
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(
+                                username,
+                                null,
+                                List.of(new SimpleGrantedAuthority(roleName)));
 
                 SecurityContextHolder.getContext()
                         .setAuthentication(authentication);
